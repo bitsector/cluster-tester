@@ -186,7 +186,7 @@ var _ = ginkgo.Describe("Topology E2E test", func() {
 	})
 
 	ginkgo.It("should apply topology manifests", func() {
-		hpaYAML, depYAML, err := example.GetTopolgyTestFiles()
+		hpaYAML, depYAML, err := example.GetTopologyTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Applying HPA manifest ===\n")

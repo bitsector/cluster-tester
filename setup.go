@@ -39,17 +39,18 @@ func GetClient() (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(config)
 }
 
-func GetTopolgyTestFiles() ([]byte, []byte, error) {
-	// Load HPA configuration with appropriate error message
-	hpaContent, err := os.ReadFile("./hpa-trigger.yaml")
+func GetTopologyTestFiles() ([]byte, []byte, error) {
+	// Fixed typo in "constraints" and added absolute paths
+	hpaPath := filepath.Join(".", "hpa-trigger.yaml")
+	hpaContent, err := os.ReadFile(hpaPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read HPA file: %w (check file permissions and path)", err)
+		return nil, nil, fmt.Errorf("HPA file error: %w (checked: %s)", err, hpaPath)
 	}
 
-	// Load Deployment configuration with clear error context
-	deploymentContent, err := os.ReadFile("./deployment-with-topology-spread-constraits.yaml")
+	deploymentPath := filepath.Join(".", "deployment-with-topology-spread-constraints.yaml")
+	deploymentContent, err := os.ReadFile(deploymentPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read deployment file: %w (verify file exists in current directory)", err)
+		return nil, nil, fmt.Errorf("Deployment file error: %w (checked: %s)", err, deploymentPath)
 	}
 
 	return hpaContent, deploymentContent, nil
