@@ -244,16 +244,38 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 		}
 
 		fmt.Printf("\n=== Wait for HPA to trigger ===\n")
-		time.Sleep(200 * time.Second)
+		time.Sleep(100 * time.Second)
 
 	})
 
 	ginkgo.It("should verify topology constraints", func() {
-		fmt.Printf("\n=== Placeholder verification ===\n")
-		gomega.Expect(true).To(gomega.BeTrue())
-		fmt.Printf("\n=== Wait post Placeholder verification ===\n")
-		time.Sleep(100 * time.Second)
+		fmt.Printf("\n=== Verifying pod scale count ===\n")
+		time.Sleep(100 * time.Second) // Wait for scaling operations
 
+		// Get deployment details
+		deployment, err := clientset.AppsV1().Deployments("test-ns").Get(
+			context.TODO(),
+			"zone-spread-example", // From HPA's scaleTargetRef.name
+			metav1.GetOptions{},
+		)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		// Get all pods for the deployment regardless of status
+		pods, err := clientset.CoreV1().Pods("test-ns").List(
+			context.TODO(),
+			metav1.ListOptions{
+				LabelSelector: metav1.FormatLabelSelector(deployment.Spec.Selector),
+			},
+		)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		totalPods := len(pods.Items)
+		fmt.Printf("Current total pods: %d | Expected HPA max: %d\n", totalPods, hpaMaxReplicas)
+
+		gomega.Expect(totalPods).To(gomega.Equal(int(hpaMaxReplicas)),
+			fmt.Sprintf("Expected exactly %d pods total, found %d", hpaMaxReplicas, totalPods))
+
+		fmt.Printf("Pod count validation successful\n")
 	})
 
 })
