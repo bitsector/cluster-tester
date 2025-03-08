@@ -2,7 +2,6 @@ package example
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -49,19 +48,4 @@ func ApplyRawManifest(clientset *kubernetes.Clientset, yamlContent []byte) error
 		return fmt.Errorf("API server error: %w", err)
 	}
 	return nil
-}
-
-func GetNsName() (string, error) {
-	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
-	b := make([]byte, 4)
-
-	_, err := rand.Read(b) // Uses crypto/rand for better randomness
-	if err != nil {
-		return "", fmt.Errorf("failed to generate random bytes: %w", err)
-	}
-
-	for i := range b {
-		b[i] = charset[int(b[i])%len(charset)]
-	}
-	return "test-ns-" + string(b), nil
 }
