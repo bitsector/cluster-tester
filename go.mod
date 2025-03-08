@@ -1,4 +1,4 @@
-module example.com/example_test
+module example
 
 go 1.23.0
 
