@@ -249,18 +249,18 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 	})
 
 	ginkgo.It("should verify topology constraints", func() {
-		fmt.Printf("\n=== Verifying pod scale count ===\n")
+		fmt.Printf("\n=== Verifying pod scale count and distribution ===\n")
 		time.Sleep(100 * time.Second) // Wait for scaling operations
 
 		// Get deployment details
 		deployment, err := clientset.AppsV1().Deployments("test-ns").Get(
 			context.TODO(),
-			"zone-spread-example", // From HPA's scaleTargetRef.name
+			"zone-spread-example",
 			metav1.GetOptions{},
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		// Get all pods for the deployment regardless of status
+		// Get all pods for the deployment
 		pods, err := clientset.CoreV1().Pods("test-ns").List(
 			context.TODO(),
 			metav1.ListOptions{
@@ -269,13 +269,43 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		totalPods := len(pods.Items)
-		fmt.Printf("Current total pods: %d | Expected HPA max: %d\n", totalPods, hpaMaxReplicas)
+		// Collect node distribution
+		nodeDistribution := make(map[string]int)
+		var nodeNames []string
 
-		gomega.Expect(totalPods).To(gomega.Equal(int(hpaMaxReplicas)),
-			fmt.Sprintf("Expected exactly %d pods total, found %d", hpaMaxReplicas, totalPods))
+		fmt.Printf("\nPod-to-Node Distribution:\n")
+		for _, pod := range pods.Items {
+			nodeName := pod.Spec.NodeName
+			nodeDistribution[nodeName]++
+			nodeNames = append(nodeNames, nodeName)
+			fmt.Printf("- Pod %-40s → Node: %s\n", pod.Name, nodeName)
+		}
 
-		fmt.Printf("Pod count validation successful\n")
+		// Calculate max skew
+		maxCount := 0
+		minCount := len(pods.Items)
+		for _, count := range nodeDistribution {
+			if count > maxCount {
+				maxCount = count
+			}
+			if count < minCount {
+				minCount = count
+			}
+		}
+		skew := maxCount - minCount
+
+		fmt.Printf("\nDistribution Analysis:\n")
+		fmt.Printf("Total Pods: %d\n", len(pods.Items))
+		fmt.Printf("Nodes Used: %d\n", len(nodeDistribution))
+		fmt.Printf("Max Pods per Node: %d\n", maxCount)
+		fmt.Printf("Min Pods per Node: %d\n", minCount)
+		fmt.Printf("Calculated Skew: %d\n", skew)
+
+		// Validate constraints
+		gomega.Expect(skew).To(gomega.BeNumerically("<=", 1),
+			fmt.Sprintf("Topology skew violation: Max skew %d exceeds allowed maximum of 1", skew))
+
+		fmt.Printf("\nTopology validation successful - max skew of %d within allowed threshold\n", skew)
 	})
 
 })
