@@ -50,7 +50,7 @@ func GetTopologyTestFiles() ([]byte, []byte, error) {
 	deploymentPath := filepath.Join(".", "deployment-with-topology-spread-constraints.yaml")
 	deploymentContent, err := os.ReadFile(deploymentPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Deployment file error: %w (checked: %s)", err, deploymentPath)
+		return nil, nil, fmt.Errorf("deployment file error: %w (checked: %s)", err, deploymentPath)
 	}
 
 	return hpaContent, deploymentContent, nil

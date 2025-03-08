@@ -201,6 +201,38 @@ var _ = ginkgo.Describe("Topology E2E test", func() {
 		time.Sleep(10 * time.Second)
 	})
 
+	ginkgo.It("should verify topology resources exist", func() {
+		fmt.Printf("\n=== Verifying cluster resources ===\n")
+
+		// Check Deployment exists
+		deployments, err := clientset.AppsV1().Deployments("test-ns").List(
+			context.TODO(),
+			metav1.ListOptions{},
+		)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		gomega.Expect(deployments.Items).NotTo(gomega.BeEmpty())
+		fmt.Printf("Found %d deployments in namespace:\n", len(deployments.Items))
+		for _, d := range deployments.Items {
+			fmt.Printf("- %s (Replicas: %d)\n", d.Name, *d.Spec.Replicas)
+		}
+
+		// Check HPA exists
+		hpas, err := clientset.AutoscalingV2().HorizontalPodAutoscalers("test-ns").List(
+			context.TODO(),
+			metav1.ListOptions{},
+		)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		gomega.Expect(hpas.Items).NotTo(gomega.BeEmpty())
+		fmt.Printf("Found %d HPAs in namespace:\n", len(hpas.Items))
+		for _, h := range hpas.Items {
+			fmt.Printf("- %s (Min: %d, Max: %d)\n",
+				h.Name,
+				*h.Spec.MinReplicas,
+				h.Spec.MaxReplicas,
+			)
+		}
+	})
+
 	ginkgo.It("should verify topology constraints", func() {
 		fmt.Printf("\n=== Placeholder verification ===\n")
 		gomega.Expect(true).To(gomega.BeTrue())
