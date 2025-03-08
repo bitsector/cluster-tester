@@ -15,5 +15,5 @@ kubectl get nodes -o custom-columns='NAME:.metadata.name,ZONE:.metadata.labels.t
 ### run tests
 ```bash
 go test -v ./connectivity_test.go -ginkgo.focus "Cluster Operations"
-go test -v ./simple_test.go -ginkgo.focus "Topology E2E test"
+go test -v ./topology_constraint_test.go -ginkgo.focus "Topology E2E test"
 ```
