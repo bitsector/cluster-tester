@@ -138,9 +138,8 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 
 	ginkgo.It("should verify topology constraints", func() {
 		fmt.Printf("\n=== Verifying pod scale count and distribution ===\n")
-		time.Sleep(100 * time.Second) // Wait for scaling operations
+		time.Sleep(100 * time.Second)
 
-		// Get deployment details
 		deployment, err := clientset.AppsV1().Deployments("test-ns").Get(
 			context.TODO(),
 			"zone-spread-example",
@@ -148,7 +147,6 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		// Get all pods for the deployment
 		pods, err := clientset.CoreV1().Pods("test-ns").List(
 			context.TODO(),
 			metav1.ListOptions{
@@ -157,22 +155,39 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		// Collect node distribution
-		nodeDistribution := make(map[string]int)
-		var nodeNames []string
-
-		fmt.Printf("\nPod-to-Node Distribution:\n")
+		// Get unique node names from all pods
+		nodeNames := make(map[string]struct{})
 		for _, pod := range pods.Items {
-			nodeName := pod.Spec.NodeName
-			nodeDistribution[nodeName]++
-			nodeNames = append(nodeNames, nodeName)
-			fmt.Printf("- Pod %-40s → Node: %s\n", pod.Name, nodeName)
+			if pod.Spec.NodeName != "" {
+				nodeNames[pod.Spec.NodeName] = struct{}{}
+			}
 		}
 
-		// Calculate max skew
+		// Build node-to-zone mapping
+		nodeToZone := make(map[string]string)
+		for nodeName := range nodeNames {
+			node, err := clientset.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			zone, ok := node.Labels["topology.kubernetes.io/zone"]
+			if !ok {
+				ginkgo.Fail(fmt.Sprintf("Node %s missing zone label", nodeName))
+			}
+			nodeToZone[nodeName] = zone
+		}
+
+		// Collect zone distribution
+		zoneDistribution := make(map[string]int)
+		fmt.Printf("\nPod-to-Zone Distribution:\n")
+		for _, pod := range pods.Items {
+			zone := nodeToZone[pod.Spec.NodeName]
+			zoneDistribution[zone]++
+			fmt.Printf("- Pod %-40s → Zone: %s\n", pod.Name, zone)
+		}
+
+		// Calculate max skew between zones
 		maxCount := 0
 		minCount := len(pods.Items)
-		for _, count := range nodeDistribution {
+		for _, count := range zoneDistribution {
 			if count > maxCount {
 				maxCount = count
 			}
@@ -182,18 +197,17 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 		}
 		skew := maxCount - minCount
 
-		fmt.Printf("\nDistribution Analysis:\n")
+		fmt.Printf("\nZone Distribution Analysis:\n")
 		fmt.Printf("Total Pods: %d\n", len(pods.Items))
-		fmt.Printf("Nodes Used: %d\n", len(nodeDistribution))
-		fmt.Printf("Max Pods per Node: %d\n", maxCount)
-		fmt.Printf("Min Pods per Node: %d\n", minCount)
+		fmt.Printf("Zones Used: %d\n", len(zoneDistribution))
+		fmt.Printf("Max Pods per Zone: %d\n", maxCount)
+		fmt.Printf("Min Pods per Zone: %d\n", minCount)
 		fmt.Printf("Calculated Skew: %d\n", skew)
 
-		// Validate constraints
 		gomega.Expect(skew).To(gomega.BeNumerically("<=", 1),
-			fmt.Sprintf("Topology skew violation: Max skew %d exceeds allowed maximum of 1", skew))
+			fmt.Sprintf("Topology skew violation: Max zone skew %d exceeds allowed maximum of 1", skew))
 
-		fmt.Printf("\nTopology validation successful - max skew of %d within allowed threshold\n", skew)
+		fmt.Printf("\nZone topology validation successful - max skew of %d within threshold\n", skew)
 	})
 
 })
