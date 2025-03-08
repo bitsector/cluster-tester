@@ -1,10 +1,8 @@
-gcloud container clusters create my-cluster \
-  --project=gcp-cloud-run-tests \
-  --region=us-central1 \
-  --node-locations=us-central1-a,us-central1-b,us-central1-c \
-  --num-nodes=1 \
-  --machine-type=n1-standard-2 \
-  --enable-ip-alias \
-  --cluster-ipv4-cidr=10.44.0.0/14 \
-  --services-ipv4-cidr=10.48.0.0/20 \
-  --release-channel=regular
+go version 1.21
+
+go get github.com/onsi/ginkgo/v2
+go get github.com/onsi/gomega
+go get k8s.io/client-go@v0.28.0
+go get k8s.io/api@v0.28.0
+go get k8s.io/apimachinery@v0.28.0
+
