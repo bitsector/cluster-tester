@@ -22,7 +22,11 @@ spec:
             app: myapp
       containers:
       - name: app-container
-        image: antonbiz/high-cpu-trigger:1.0
+        image: nginx:alpine
+        command: ["sh", "-c"]
+        args: ["sleep 5 && while :; do echo '15^999999' | bc >/dev/null; done"]
+        securityContext:
+          runAsUser: 0  # Root required for bc installation
         resources:
           requests:
             cpu: 200m
