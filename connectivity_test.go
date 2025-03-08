@@ -22,6 +22,11 @@ func TestConnectivity(t *testing.T) {
 
 var _ = ginkgo.Describe("Cluster Operations", func() {
 	var clientset *kubernetes.Clientset
+	nsName, err := example.GetNsName()
+	if err != nil {
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		fmt.Printf("Could not get namespace name, %+v\n", err)
+	}
 
 	ginkgo.BeforeEach(func() {
 		var err error
@@ -29,18 +34,18 @@ var _ = ginkgo.Describe("Cluster Operations", func() {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// Namespace setup
-		fmt.Printf("\n=== Checking for test-ns namespace ===\n")
+		fmt.Printf("\n=== Checking for %s namespace ===\n", nsName)
 		_, err = clientset.CoreV1().Namespaces().Get(
 			context.TODO(),
-			"test-ns",
+			nsName,
 			metav1.GetOptions{},
 		)
 
 		if apierrors.IsNotFound(err) {
-			fmt.Printf("Namespace test-ns not found, creating...\n")
+			fmt.Printf("Namespace %s not found, creating...\n", nsName)
 			ns := &v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-ns",
+					Name: nsName,
 				},
 			}
 			_, err = clientset.CoreV1().Namespaces().Create(
@@ -49,10 +54,10 @@ var _ = ginkgo.Describe("Cluster Operations", func() {
 				metav1.CreateOptions{},
 			)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			fmt.Printf("Namespace test-ns created successfully\n")
+			fmt.Printf("Namespace %s created successfully\n", nsName)
 		} else {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			fmt.Printf("Namespace test-ns already exists\n")
+			fmt.Printf("Namespace %s already exists\n", nsName)
 		}
 
 		// Cleanup connections
@@ -62,16 +67,16 @@ var _ = ginkgo.Describe("Cluster Operations", func() {
 
 		// Namespace cleanup
 		ginkgo.DeferCleanup(func() {
-			fmt.Printf("\n=== Cleaning up test-ns namespace ===\n")
+			fmt.Printf("\n=== Cleaning up %s namespace ===\n", nsName)
 			err := clientset.CoreV1().Namespaces().Delete(
 				context.TODO(),
-				"test-ns",
+				nsName,
 				metav1.DeleteOptions{},
 			)
 			if err != nil && !apierrors.IsNotFound(err) {
 				ginkgo.Fail(fmt.Sprintf("Failed to delete namespace: %v", err))
 			}
-			fmt.Printf("Namespace test-ns cleanup initiated\n")
+			fmt.Printf("Namespace %s cleanup initiated\n", nsName)
 		})
 	})
 
@@ -118,10 +123,10 @@ var _ = ginkgo.Describe("Cluster Operations", func() {
 		fmt.Printf("\n=== Verifying test namespace ===\n")
 		_, err := clientset.CoreV1().Namespaces().Get(
 			context.TODO(),
-			"test-ns",
+			nsName,
 			metav1.GetOptions{},
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		fmt.Printf("Namespace test-ns verified\n")
+		fmt.Printf("Namespace %s verified\n", nsName)
 	})
 })

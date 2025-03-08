@@ -36,7 +36,7 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 		fmt.Printf("\n=== Ensuring test-ns exists ===\n")
 		_, err = clientset.CoreV1().Namespaces().Get(
 			context.TODO(),
-			"test-ns",
+			example.GetNsName(),
 			metav1.GetOptions{},
 		)
 
@@ -44,7 +44,7 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 			fmt.Printf("Creating test-ns namespace\n")
 			ns := &v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-ns",
+					Name: example.GetNsName(),
 				},
 			}
 			_, err = clientset.CoreV1().Namespaces().Create(
@@ -66,7 +66,7 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 		fmt.Printf("\n=== Final namespace cleanup ===\n")
 		err := clientset.CoreV1().Namespaces().Delete(
 			context.TODO(),
-			"test-ns",
+			example.GetNsName(),
 			metav1.DeleteOptions{},
 		)
 		if err != nil && !apierrors.IsNotFound(err) {
@@ -104,7 +104,7 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 		fmt.Printf("\n=== Verifying cluster resources ===\n")
 
 		// Check Deployment exists
-		deployments, err := clientset.AppsV1().Deployments("test-ns").List(
+		deployments, err := clientset.AppsV1().Deployments(example.GetNsName()).List(
 			context.TODO(),
 			metav1.ListOptions{},
 		)
@@ -116,7 +116,7 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 		}
 
 		// Check HPA exists
-		hpas, err := clientset.AutoscalingV2().HorizontalPodAutoscalers("test-ns").List(
+		hpas, err := clientset.AutoscalingV2().HorizontalPodAutoscalers(example.GetNsName()).List(
 			context.TODO(),
 			metav1.ListOptions{},
 		)
@@ -141,7 +141,7 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 		time.Sleep(100 * time.Second) // Wait for scaling operations
 
 		// Get deployment details
-		deployment, err := clientset.AppsV1().Deployments("test-ns").Get(
+		deployment, err := clientset.AppsV1().Deployments(example.GetNsName()).Get(
 			context.TODO(),
 			"zone-spread-example",
 			metav1.GetOptions{},
@@ -149,7 +149,7 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// Get all pods for the deployment
-		pods, err := clientset.CoreV1().Pods("test-ns").List(
+		pods, err := clientset.CoreV1().Pods(example.GetNsName()).List(
 			context.TODO(),
 			metav1.ListOptions{
 				LabelSelector: metav1.FormatLabelSelector(deployment.Spec.Selector),
