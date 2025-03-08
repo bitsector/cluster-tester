@@ -8,6 +8,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -134,10 +135,11 @@ var _ = ginkgo.Describe("Basic Test", func() {
 	})
 })
 
-var _ = ginkgo.Describe("Topology E2E test", func() {
+var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 	var clientset *kubernetes.Clientset
+	var hpaMaxReplicas int32 // Add global variable declaration
 
-	ginkgo.BeforeEach(func() {
+	ginkgo.BeforeAll(func() {
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -166,30 +168,40 @@ var _ = ginkgo.Describe("Topology E2E test", func() {
 		} else {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		}
+	})
 
-		// Register cleanup operations INSIDE the setup node
-		ginkgo.DeferCleanup(func() {
-			fmt.Printf("\n=== Final namespace cleanup ===\n")
-			err := clientset.CoreV1().Namespaces().Delete(
-				context.TODO(),
-				"test-ns",
-				metav1.DeleteOptions{},
-			)
-			if err != nil && !apierrors.IsNotFound(err) {
-				ginkgo.Fail(fmt.Sprintf("Final cleanup failed: %v", err))
-			}
-		})
+	ginkgo.AfterEach(func() {
+		clientset.CoreV1().RESTClient().(*rest.RESTClient).Client.CloseIdleConnections()
+	})
 
-		ginkgo.DeferCleanup(func() {
-			clientset.CoreV1().RESTClient().(*rest.RESTClient).Client.CloseIdleConnections()
-		})
+	ginkgo.AfterAll(func() {
+		fmt.Printf("\n=== Final namespace cleanup ===\n")
+		err := clientset.CoreV1().Namespaces().Delete(
+			context.TODO(),
+			"test-ns",
+			metav1.DeleteOptions{},
+		)
+		if err != nil && !apierrors.IsNotFound(err) {
+			ginkgo.Fail(fmt.Sprintf("Final cleanup failed: %v", err))
+		}
 	})
 
 	ginkgo.It("should apply topology manifests", func() {
 		hpaYAML, depYAML, err := example.GetTopologyTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Applying HPA manifest ===\n")
+		// Parse HPA YAML to extract maxReplicas
+		type hpaSpec struct {
+			Spec struct {
+				MaxReplicas int32 `yaml:"maxReplicas"`
+			} `yaml:"spec"`
+		}
+		var hpaConfig hpaSpec
+		err = yaml.Unmarshal([]byte(hpaYAML), &hpaConfig)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		hpaMaxReplicas = hpaConfig.Spec.MaxReplicas
+
+		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
 		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -197,7 +209,6 @@ var _ = ginkgo.Describe("Topology E2E test", func() {
 		err = example.ApplyRawManifest(clientset, depYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Waiting 10 seconds ===\n")
 		time.Sleep(10 * time.Second)
 	})
 
@@ -231,10 +242,18 @@ var _ = ginkgo.Describe("Topology E2E test", func() {
 				h.Spec.MaxReplicas,
 			)
 		}
+
+		fmt.Printf("\n=== Wait for HPA to trigger ===\n")
+		time.Sleep(200 * time.Second)
+
 	})
 
 	ginkgo.It("should verify topology constraints", func() {
 		fmt.Printf("\n=== Placeholder verification ===\n")
 		gomega.Expect(true).To(gomega.BeTrue())
+		fmt.Printf("\n=== Wait post Placeholder verification ===\n")
+		time.Sleep(100 * time.Second)
+
 	})
+
 })

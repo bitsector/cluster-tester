@@ -22,7 +22,7 @@ spec:
             app: myapp
       containers:
       - name: app-container
-        image: nginx:alpine
+        image: antonbiz/high-cpu-trigger:1.0
         resources:
           requests:
             cpu: 200m
