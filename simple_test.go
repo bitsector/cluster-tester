@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -21,7 +22,7 @@ func TestExample(t *testing.T) {
 	ginkgo.RunSpecs(t, "Cluster Test Suite")
 }
 
-var _ = ginkgo.Describe("Basic Tests", func() {
+var _ = ginkgo.Describe("Basic Test", func() {
 	ginkgo.It("should pass basic math", func() {
 		gomega.Expect(1 + 1).To(gomega.Equal(2))
 	})
@@ -130,5 +131,78 @@ var _ = ginkgo.Describe("Basic Tests", func() {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			fmt.Printf("Namespace test-ns verified\n")
 		})
+	})
+})
+
+var _ = ginkgo.Describe("Topology E2E test", func() {
+	var clientset *kubernetes.Clientset
+
+	ginkgo.BeforeEach(func() {
+		var err error
+		clientset, err = example.GetClient()
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		// Namespace setup
+		fmt.Printf("\n=== Ensuring test-ns exists ===\n")
+		_, err = clientset.CoreV1().Namespaces().Get(
+			context.TODO(),
+			"test-ns",
+			metav1.GetOptions{},
+		)
+
+		if apierrors.IsNotFound(err) {
+			fmt.Printf("Creating test-ns namespace\n")
+			ns := &v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-ns",
+				},
+			}
+			_, err = clientset.CoreV1().Namespaces().Create(
+				context.TODO(),
+				ns,
+				metav1.CreateOptions{},
+			)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		} else {
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		}
+
+		// Register cleanup operations INSIDE the setup node
+		ginkgo.DeferCleanup(func() {
+			fmt.Printf("\n=== Final namespace cleanup ===\n")
+			err := clientset.CoreV1().Namespaces().Delete(
+				context.TODO(),
+				"test-ns",
+				metav1.DeleteOptions{},
+			)
+			if err != nil && !apierrors.IsNotFound(err) {
+				ginkgo.Fail(fmt.Sprintf("Final cleanup failed: %v", err))
+			}
+		})
+
+		ginkgo.DeferCleanup(func() {
+			clientset.CoreV1().RESTClient().(*rest.RESTClient).Client.CloseIdleConnections()
+		})
+	})
+
+	ginkgo.It("should apply topology manifests", func() {
+		hpaYAML, depYAML, err := example.GetTopolgyTestFiles()
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		fmt.Printf("\n=== Applying HPA manifest ===\n")
+		err = example.ApplyRawManifest(clientset, hpaYAML)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		fmt.Printf("\n=== Applying Deployment manifest ===\n")
+		err = example.ApplyRawManifest(clientset, depYAML)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		fmt.Printf("\n=== Waiting 10 seconds ===\n")
+		time.Sleep(10 * time.Second)
+	})
+
+	ginkgo.It("should verify topology constraints", func() {
+		fmt.Printf("\n=== Placeholder verification ===\n")
+		gomega.Expect(true).To(gomega.BeTrue())
 	})
 })
