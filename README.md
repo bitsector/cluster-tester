@@ -9,7 +9,6 @@ go install github.com/onsi/ginkgo/v2/ginkgo@latest
 
 ### Make sure the nodes are in seperate regions
 ```bash
-
 kubectl get nodes -o custom-columns='NAME:.metadata.name,ZONE:.metadata.labels.topology\.kubernetes\.io/zone'
 ```
 
