@@ -5,33 +5,53 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/joho/godotenv"
+
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
 
-func GetClient() (*kubernetes.Clientset, error) {
-	var config *rest.Config
-	var err error
+// Global variable for kubeconfig path
+var KubeconfigPath string
 
-	// First try in-cluster config
-	config, err = rest.InClusterConfig()
-	if err != nil {
-		// Fallback to kubeconfig
-		home := homedir.HomeDir()
-		if home == "" {
-			return nil, fmt.Errorf("no home directory found")
-		}
-
-		kubeconfig := filepath.Join(home, ".kube", "config")
-		if _, err = os.Stat(kubeconfig); err != nil {
-			return nil, fmt.Errorf("kubeconfig not found: %w", err)
-		}
-
-		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+func initKubeconfig() error {
+	// Try to load .env file
+	err := godotenv.Load(".env")
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("error loading .env file: %w", err)
 	}
 
+	// Get kubeconfig path from environment
+	KubeconfigPath = os.Getenv("KUBECONFIG")
+
+	// Fallback to default if not set
+	if KubeconfigPath == "" {
+		if os.IsNotExist(err) { // .env doesn't exist
+			home := homedir.HomeDir()
+			if home == "" {
+				return fmt.Errorf("no home directory found")
+			}
+			KubeconfigPath = filepath.Join(home, ".kube", "config")
+		} else { // .env exists but KUBECONFIG is empty
+			panic(".env file format error, please use KUBECONFIG=/path/to/.kube/config")
+		}
+	}
+
+	// Verify kubeconfig file exists
+	if _, err := os.Stat(KubeconfigPath); err != nil {
+		return fmt.Errorf("kubeconfig not found: %w (checked: %s)", err, KubeconfigPath)
+	}
+
+	return nil
+}
+
+func GetClient() (*kubernetes.Clientset, error) {
+	if err := initKubeconfig(); err != nil {
+		return nil, err
+	}
+
+	config, err := clientcmd.BuildConfigFromFlags("", KubeconfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("config creation error: %w", err)
 	}

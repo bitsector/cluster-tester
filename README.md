@@ -6,6 +6,10 @@ go get ./...
 go mod tidy
 go install github.com/onsi/ginkgo/v2/ginkgo@latest
 ```
+### Set the path to your local kube config in .env file
+```bash
+KUBECONFIG=/path/to/.kube/config
+```
 
 ### Make sure the nodes are in seperate regions
 ```bash
