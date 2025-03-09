@@ -1,4 +1,3 @@
-# Base deployment constrained to specific zone
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,8 +16,6 @@ spec:
       containers:
       - name: nginx
         image: nginx:alpine
-        command: ["sh", "-c"]
-        args: ["sleep 5 && while :; do echo '15^999999' | bc >/dev/null; done"]
         resources:
           requests:
             cpu: "10m"

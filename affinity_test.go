@@ -102,7 +102,67 @@ var _ = ginkgo.Describe("Affinity E2E test", ginkgo.Ordered, func() {
 		err = example.ApplyRawManifest(clientset, depYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
+		fmt.Printf("\n=== Wait for HPA to be triggered ===\n")
 		time.Sleep(200 * time.Second)
+	})
+
+	ginkgo.It("should ensure dependent pods are in same zone as zone-marker", func() {
+		// Get zone-marker pod details using correct label selector
+		fmt.Printf("\n=== Getting zone-marker pod details ===\n")
+		markerPods, err := clientset.CoreV1().Pods("test-ns").List(
+			context.TODO(),
+			metav1.ListOptions{
+				LabelSelector: "app=desired-zone-for-affinity", // Updated to match YAML labels
+			},
+		)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		gomega.Expect(markerPods.Items).To(gomega.HaveLen(1),
+			"Should have exactly one zone-marker pod. Check deployment labels.")
+
+		markerPod := markerPods.Items[0]
+		markerNode, err := clientset.CoreV1().Nodes().Get(
+			context.TODO(),
+			markerPod.Spec.NodeName,
+			metav1.GetOptions{},
+		)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		markerZone := markerNode.Labels["topology.kubernetes.io/zone"]
+		fmt.Printf("Zone-Marker Pod: %s\nNode: %s\nZone: %s\n",
+			markerPod.Name, markerPod.Spec.NodeName, markerZone)
+
+		// Get dependent-app pods details
+		fmt.Printf("\n=== Getting dependent-app pods details ===\n")
+		depPods, err := clientset.CoreV1().Pods("test-ns").List(
+			context.TODO(),
+			metav1.ListOptions{
+				LabelSelector: "app=dependent-app",
+			},
+		)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		gomega.Expect(depPods.Items).NotTo(gomega.BeEmpty(),
+			"No dependent-app pods found. Check deployment status.")
+
+		var depZones []string
+		for _, pod := range depPods.Items {
+			node, err := clientset.CoreV1().Nodes().Get(
+				context.TODO(),
+				pod.Spec.NodeName,
+				metav1.GetOptions{},
+			)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			zone := node.Labels["topology.kubernetes.io/zone"]
+			depZones = append(depZones, zone)
+			fmt.Printf("Dependent Pod: %s\nNode: %s\nZone: %s\n",
+				pod.Name, pod.Spec.NodeName, zone)
+		}
+
+		// Validate all zones match
+		fmt.Printf("\n=== Validating zone consistency ===\n")
+		fmt.Printf("Zone-Marker Zone: %s\nDependent Pod Zones: %v\n", markerZone, depZones)
+		gomega.Expect(depZones).To(gomega.HaveEach(markerZone),
+			"All dependent pods should be in the same zone as zone-marker")
 	})
 
 })
