@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: dependent-app
+  namespace: test-ns
 spec:
   replicas: 1
   selector:
@@ -23,7 +24,9 @@ spec:
             topologyKey: "topology.kubernetes.io/zone"
       containers:
       - name: main-app
-        image: nginx:latest
+        image: nginx:alpine
+        command: ["sh", "-c"]
+        args: ["sleep 5 && while :; do echo '15^999999' | bc >/dev/null; done"]
         ports:
         - containerPort: 80
         resources:
