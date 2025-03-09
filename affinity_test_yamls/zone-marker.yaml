@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zone-marker
+  namespace: test-ns
 spec:
   replicas: 1
   selector:
@@ -15,7 +16,9 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: nginx:1.25
+        image: nginx:alpine
+        command: ["sh", "-c"]
+        args: ["sleep 5 && while :; do echo '15^999999' | bc >/dev/null; done"]
         resources:
           requests:
             cpu: "10m"
