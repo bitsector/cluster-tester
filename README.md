@@ -5,6 +5,7 @@ go version 1.24
 go get ./...
 go mod tidy
 go install github.com/onsi/ginkgo/v2/ginkgo@latest
+go get github.com/joho/godotenv
 ```
 ### Set the path to your local kube config in .env file
 ```bash
@@ -23,4 +24,5 @@ go test -v ./topology_constraint_test.go -ginkgo.focus "Topology E2E test"
 go test -v ./affinity_test.go -ginkgo.focus "Affinity E2E test"
 go test -v ./anti_affinity_test.go -ginkgo.focus "Anti Affinity E2E test"
 go test -v ./pdb_test.go -ginkgo.focus "PDB E2E test"
+go test -v ./rolling_update_test.go -ginkgo.focus "Rolling Update E2E test"
 ```

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: test-ns
+spec:
+  replicas: 6
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 25%
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+        component: my-unique-deployment
+    spec:
+      containers:
+      - name: main-app
+        image: nginx:alpine
+        resources:
+          requests:
+            cpu: "50m"  # Original CPU request
+            memory: "64Mi"
