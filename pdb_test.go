@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +25,7 @@ func TestPDB(t *testing.T) {
 
 var _ = ginkgo.Describe("PDB E2E test", ginkgo.Ordered, func() {
 	var clientset *kubernetes.Clientset
-	// var hpaMaxReplicas int32
+	var hpaMaxReplicas int32
 
 	ginkgo.BeforeAll(func() {
 		var err error
@@ -72,36 +74,36 @@ var _ = ginkgo.Describe("PDB E2E test", ginkgo.Ordered, func() {
 		}
 	})
 
-	// ginkgo.It("should apply affinity manifests", func() {
-	// 	hpaYAML, pdbYYAML, depYAML, err := example.GetPDBTestFiles()
-	// 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	ginkgo.It("should apply affinity manifests", func() {
+		hpaYAML, pdbYYAML, depYAML, err := example.GetPDBTestFiles()
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-	// 	// Parse HPA YAML to extract maxReplicas
-	// 	type hpaSpec struct {
-	// 		Spec struct {
-	// 			MaxReplicas int32 `yaml:"maxReplicas"`
-	// 		} `yaml:"spec"`
-	// 	}
+		// Parse HPA YAML to extract maxReplicas
+		type hpaSpec struct {
+			Spec struct {
+				MaxReplicas int32 `yaml:"maxReplicas"`
+			} `yaml:"spec"`
+		}
 
-	// 	var hpaConfig hpaSpec
-	// 	err = yaml.Unmarshal([]byte(hpaYAML), &hpaConfig)
-	// 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	// 	hpaMaxReplicas = hpaConfig.Spec.MaxReplicas
+		var hpaConfig hpaSpec
+		err = yaml.Unmarshal([]byte(hpaYAML), &hpaConfig)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		hpaMaxReplicas = hpaConfig.Spec.MaxReplicas
 
-	// 	fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
-	// 	err = example.ApplyRawManifest(clientset, hpaYAML)
-	// 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
+		err = example.ApplyRawManifest(clientset, hpaYAML)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-	// 	fmt.Printf("\n=== Applying PDB manifest ===\n")
-	// 	err = example.ApplyRawManifest(clientset, pdbYYAML)
-	// 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		fmt.Printf("\n=== Applying PDB manifest ===\n")
+		err = example.ApplyRawManifest(clientset, pdbYYAML)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-	// 	fmt.Printf("\n=== Applying Deployment manifest ===\n")
-	// 	err = example.ApplyRawManifest(clientset, depYAML)
-	// 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		fmt.Printf("\n=== Applying Deployment manifest ===\n")
+		err = example.ApplyRawManifest(clientset, depYAML)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-	// 	fmt.Printf("\n=== Wait for HPA to be triggered ===\n")
-	// 	time.Sleep(200 * time.Second)
-	// })
+		fmt.Printf("\n=== Wait for HPA to be triggered ===\n")
+		time.Sleep(200 * time.Second)
+	})
 
 })
