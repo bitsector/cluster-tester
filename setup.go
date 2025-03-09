@@ -76,3 +76,25 @@ func GetAffinityTestFiles() ([]byte, []byte, []byte, error) {
 
 	return hpaContent, zoneContent, deploymentContent, nil
 }
+
+func GetAntiAffinityTestFiles() ([]byte, []byte, []byte, error) {
+	hpaPath := filepath.Join("anti_affinity_test_yamls", "hpa-trigger.yaml")
+	hpaContent, err := os.ReadFile(hpaPath)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("HPA trigger file error: %w (checked: %s)", err, hpaPath)
+	}
+
+	zonePath := filepath.Join("anti_affinity_test_yamls", "zone-marker.yaml")
+	zoneContent, err := os.ReadFile(zonePath)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("zone marker file error: %w (checked: %s)", err, zonePath)
+	}
+
+	deploymentPath := filepath.Join("anti_affinity_test_yamls", "anti-affinity-dependent-app.yaml")
+	deploymentContent, err := os.ReadFile(deploymentPath)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("anti-affinity-dependent deployment file error: %w (checked: %s)", err, deploymentPath)
+	}
+
+	return hpaContent, zoneContent, deploymentContent, nil
+}
