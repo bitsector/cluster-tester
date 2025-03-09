@@ -56,7 +56,7 @@ func GetTopologyTestFiles() ([]byte, []byte, error) {
 }
 
 func GetAffinityTestFiles() ([]byte, []byte, []byte, error) {
-	deploymentPath := filepath.Join("affinity_test_yamls", "afrinity-dependent-deployment.yaml")
+	deploymentPath := filepath.Join("affinity_test_yamls", "affinity-dependent-app.yaml")
 	deploymentContent, err := os.ReadFile(deploymentPath)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("affinity-dependent deployment file error: %w (checked: %s)", err, deploymentPath)
