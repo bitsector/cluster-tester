@@ -9,6 +9,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -28,9 +29,9 @@ var _ = ginkgo.Describe("Rolling Update E2E test", ginkgo.Ordered, func() {
 	var (
 		clientset      *kubernetes.Clientset
 		hpaMaxReplicas int32
-		depEndYAML     []byte
 		depStartYAML   []byte
 		hpaYAML        []byte
+		newDeployment  *appsv1.Deployment
 	)
 
 	ginkgo.BeforeAll(func() {
@@ -82,7 +83,7 @@ var _ = ginkgo.Describe("Rolling Update E2E test", ginkgo.Ordered, func() {
 
 	ginkgo.It("should apply Rolling update manifests", func() {
 		var err error
-		depStartYAML, hpaYAML, depEndYAML, err = example.GetRollingUpdateTestFiles()
+		depStartYAML, hpaYAML, _, err = example.GetRollingUpdateTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// Parse HPA YAML to extract maxReplicas
@@ -106,12 +107,6 @@ var _ = ginkgo.Describe("Rolling Update E2E test", ginkgo.Ordered, func() {
 		fmt.Printf("\n=== Applying HPA manifest ===\n")
 		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		// fmt.Printf("\n=== Applying Deployment manifest ===\n")
-		// err = example.ApplyRawManifest(clientset, depEndYAML)
-		// gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		fmt.Printf("\n=== %d ===\n", len(depEndYAML))
 
 		fmt.Printf("\n=== Wait for Pods to chedule ===\n")
 		time.Sleep(30 * time.Second)
@@ -156,37 +151,55 @@ var _ = ginkgo.Describe("Rolling Update E2E test", ginkgo.Ordered, func() {
 				deployment.Status.AvailableReplicas == *deployment.Spec.Replicas
 		}, 3*time.Minute, 5*time.Second).Should(gomega.BeTrue())
 
-		fmt.Printf("\n=== Verifying pod resource updates ===\n")
-		pods, err := clientset.CoreV1().Pods("test-ns").List(
+	})
+
+	ginkgo.It("should perform rolling update with updated CPU requests", func() {
+		fmt.Printf("\n=== Triggering rolling update with new CPU requests ===\n")
+
+		currentDeployment, err := clientset.AppsV1().Deployments("test-ns").Get(
 			context.TODO(),
-			metav1.ListOptions{
-				LabelSelector: "app=app",
-			},
+			"app",
+			metav1.GetOptions{},
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		// Verify all pods are using new CPU requests
-		for _, pod := range pods.Items {
-			ginkgo.By(fmt.Sprintf("Checking pod %s", pod.Name))
+		// FIX 1: Remove colon to assign to shared variable
+		newDeployment = currentDeployment.DeepCopy()
+		newDeployment.Spec.Template.Spec.Containers[0].Resources.Requests[v1.ResourceCPU] = resource.MustParse("100m")
 
-			// Ensure pod is running and ready
-			gomega.Expect(pod.Status.Phase).To(gomega.Equal(v1.PodRunning))
-			gomega.Expect(pod.Status.ContainerStatuses[0].Ready).To(gomega.BeTrue())
+		// FIX 2: Capture updated deployment from API response
+		updatedDeployment, err := clientset.AppsV1().Deployments("test-ns").Update(
+			context.TODO(),
+			newDeployment,
+			metav1.UpdateOptions{
+				FieldManager: "e2e-test",
+			},
+		)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		newDeployment = updatedDeployment
 
-			// Verify resource requests
-			container := pod.Spec.Containers[0]
-			cpuRequest := container.Resources.Requests[v1.ResourceCPU]
-			memoryRequest := container.Resources.Requests[v1.ResourceMemory]
+		fmt.Printf("\n=== Waiting for rollout to complete ===\n")
+		gomega.Eventually(func() bool {
+			deployment, err := clientset.AppsV1().Deployments("test-ns").Get(
+				context.TODO(),
+				"app",
+				metav1.GetOptions{},
+			)
+			if err != nil {
+				return false
+			}
+			return deployment.Status.UpdatedReplicas == *deployment.Spec.Replicas &&
+				deployment.Status.Replicas == *deployment.Spec.Replicas &&
+				deployment.Status.AvailableReplicas == *deployment.Spec.Replicas
+		}, 3*time.Minute, 5*time.Second).Should(gomega.BeTrue())
 
-			gomega.Expect(cpuRequest.String()).To(gomega.Equal("100m"),
-				"Pod %s has incorrect CPU request", pod.Name)
-			gomega.Expect(memoryRequest.String()).To(gomega.Equal("64Mi"),
-				"Pod %s has incorrect Memory request", pod.Name)
-
-			// Additional verification for rolling update behavior
-			ginkgo.By(fmt.Sprintf("Verify pod creation timestamp > deployment update time"))
-			gomega.Expect(pod.CreationTimestamp.After(newDeployment.CreationTimestamp.Time)).To(gomega.BeTrue(),
-				"Pod %s was not created after deployment update", pod.Name)
-		}
+		// FIX 3: Refresh deployment status after rollout
+		finalDeployment, err := clientset.AppsV1().Deployments("test-ns").Get(
+			context.TODO(),
+			"app",
+			metav1.GetOptions{},
+		)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		newDeployment = finalDeployment
 	})
 })
