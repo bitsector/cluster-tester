@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dependent-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: dependent-app
+  template:
+    metadata:
+      labels:
+        app: dependent-app
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values: ["desired-zone-for-affinity"]
+            topologyKey: "topology.kubernetes.io/zone"
+      containers:
+      - name: main-app
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"

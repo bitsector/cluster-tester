@@ -1,0 +1,22 @@
+# Base deployment constrained to specific zone
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zone-marker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: desired-zone-for-affinity
+  template:
+    metadata:
+      labels:
+        app: desired-zone-for-affinity
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "16Mi"

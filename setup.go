@@ -40,7 +40,6 @@ func GetClient() (*kubernetes.Clientset, error) {
 }
 
 func GetTopologyTestFiles() ([]byte, []byte, error) {
-	// Fixed typo in "constraints" and added absolute paths
 	hpaPath := filepath.Join(".", "hpa-trigger.yaml")
 	hpaContent, err := os.ReadFile(hpaPath)
 	if err != nil {
@@ -54,4 +53,20 @@ func GetTopologyTestFiles() ([]byte, []byte, error) {
 	}
 
 	return hpaContent, deploymentContent, nil
+}
+
+func GetAffinityTestFiles() ([]byte, []byte, error) {
+	deploymentPath := filepath.Join("affinity_test_yamls", "afrinity-dependent-deployment.yaml")
+	deploymentContent, err := os.ReadFile(deploymentPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("affinity-dependent deployment file error: %w (checked: %s)", err, deploymentPath)
+	}
+
+	zonePath := filepath.Join("affinity_test_yamls", "zone-marker.yaml")
+	zoneContent, err := os.ReadFile(zonePath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("zone marker file error: %w (checked: %s)", err, zonePath)
+	}
+
+	return deploymentContent, zoneContent, nil
 }
