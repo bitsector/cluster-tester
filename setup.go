@@ -40,13 +40,13 @@ func GetClient() (*kubernetes.Clientset, error) {
 }
 
 func GetTopologyTestFiles() ([]byte, []byte, error) {
-	hpaPath := filepath.Join(".", "hpa-trigger.yaml")
+	hpaPath := filepath.Join("topology_test_yamls", "hpa-trigger.yaml")
 	hpaContent, err := os.ReadFile(hpaPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("HPA file error: %w (checked: %s)", err, hpaPath)
 	}
 
-	deploymentPath := filepath.Join(".", "topology-dep.yaml")
+	deploymentPath := filepath.Join("topology_test_yamls", "topology-dep.yaml")
 	deploymentContent, err := os.ReadFile(deploymentPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("deployment file error: %w (checked: %s)", err, deploymentPath)
@@ -55,18 +55,24 @@ func GetTopologyTestFiles() ([]byte, []byte, error) {
 	return hpaContent, deploymentContent, nil
 }
 
-func GetAffinityTestFiles() ([]byte, []byte, error) {
+func GetAffinityTestFiles() ([]byte, []byte, []byte, error) {
 	deploymentPath := filepath.Join("affinity_test_yamls", "afrinity-dependent-deployment.yaml")
 	deploymentContent, err := os.ReadFile(deploymentPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("affinity-dependent deployment file error: %w (checked: %s)", err, deploymentPath)
+		return nil, nil, nil, fmt.Errorf("affinity-dependent deployment file error: %w (checked: %s)", err, deploymentPath)
+	}
+
+	hpaPath := filepath.Join("affinity_test_yamls", "hpa-trigger.yaml")
+	hpaContent, err := os.ReadFile(hpaPath)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("HPA trigger file error: %w (checked: %s)", err, hpaPath)
 	}
 
 	zonePath := filepath.Join("affinity_test_yamls", "zone-marker.yaml")
 	zoneContent, err := os.ReadFile(zonePath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("zone marker file error: %w (checked: %s)", err, zonePath)
+		return nil, nil, nil, fmt.Errorf("zone marker file error: %w (checked: %s)", err, zonePath)
 	}
 
-	return deploymentContent, zoneContent, nil
+	return deploymentContent, hpaContent, zoneContent, nil
 }
