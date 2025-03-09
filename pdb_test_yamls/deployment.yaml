@@ -4,7 +4,7 @@ metadata:
   name: app
   namespace: test-ns
 spec:
-  replicas: 12
+  replicas: 6
   selector:
     matchLabels:
       app: app
@@ -12,12 +12,11 @@ spec:
     metadata:
       labels:
         app: app
+        component: my-unique-deployment  # Added unique label
     spec:
       containers:
       - name: main-app
         image: nginx:alpine
-        # command: ["sh", "-c"]
-        # args: ["sleep 5 && while :; do echo '15^999999' | bc >/dev/null; done"]
         resources:
           requests:
             cpu: "50m"

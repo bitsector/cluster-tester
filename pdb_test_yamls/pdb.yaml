@@ -4,7 +4,8 @@ metadata:
   name: app-pdb
   namespace: test-ns
 spec:
-  minAvailable: 4
+  minAvailable: 5
   selector:
     matchLabels:
       app: app
+      component: my-unique-deployment  # Tightened selector

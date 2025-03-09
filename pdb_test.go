@@ -26,7 +26,7 @@ func TestPDB(t *testing.T) {
 var _ = ginkgo.Describe("PDB E2E test", ginkgo.Ordered, func() {
 	var clientset *kubernetes.Clientset
 	var hpaMaxReplicas int32
-	var initialNumPods int
+	var minBDPAllowedPods int32
 
 	ginkgo.BeforeAll(func() {
 		var err error
@@ -75,8 +75,8 @@ var _ = ginkgo.Describe("PDB E2E test", ginkgo.Ordered, func() {
 		}
 	})
 
-	ginkgo.It("should apply affinity manifests", func() {
-		hpaYAML, pdbYYAML, depYAML, err := example.GetPDBTestFiles()
+	ginkgo.It("should apply PDB manifests", func() {
+		hpaYAML, pdbYAML, depYAML, err := example.GetPDBTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// Parse HPA YAML to extract maxReplicas
@@ -86,137 +86,94 @@ var _ = ginkgo.Describe("PDB E2E test", ginkgo.Ordered, func() {
 			} `yaml:"spec"`
 		}
 
+		// Parse PDB YAML to extract minBDPAllowedPods
 		var hpaConfig hpaSpec
 		err = yaml.Unmarshal([]byte(hpaYAML), &hpaConfig)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		hpaMaxReplicas = hpaConfig.Spec.MaxReplicas
 
+		type pdbSpec struct {
+			Spec struct {
+				MinAvailable int32 `yaml:"minAvailable"`
+			} `yaml:"spec"`
+		}
+
+		var pdbConfig pdbSpec
+		err = yaml.Unmarshal([]byte(pdbYAML), &pdbConfig)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		minBDPAllowedPods = pdbConfig.Spec.MinAvailable
+		fmt.Printf("\n=== Minimum allowed pods from PDB: %d ===\n", minBDPAllowedPods)
+
+		// Apply all the manifests
 		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
 		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Applying PDB manifest ===\n")
-		err = example.ApplyRawManifest(clientset, pdbYYAML)
+		err = example.ApplyRawManifest(clientset, pdbYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Applying Deployment manifest ===\n")
 		err = example.ApplyRawManifest(clientset, depYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Wait for HPA to be triggered ===\n")
-		time.Sleep(200 * time.Second)
+		fmt.Printf("\n=== Wait for Pods to chedule ===\n")
+		time.Sleep(30 * time.Second)
 	})
 
-	ginkgo.It("should attempt to delete all pods in test-ns", func() {
+	ginkgo.It("should maintain minimum pod count during deletions", func() {
+		// 2.1 Get current pod count
+		startGet := time.Now()
 		pods, err := clientset.CoreV1().Pods("test-ns").List(
 			context.TODO(),
-			metav1.ListOptions{},
+			metav1.ListOptions{FieldSelector: "status.phase=Running"},
 		)
+		getDuration := time.Since(startGet)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		initialPods := len(pods.Items)
+		fmt.Printf("\n=== Initial running pods: %d ===\n", initialPods)
 
-		initialNumPods = len(pods.Items)
+		// 2.2 Verify minimum pod count
+		gomega.Expect(int32(initialPods)).To(
+			gomega.BeNumerically(">=", minBDPAllowedPods),
+			fmt.Sprintf("Initial pods (%d) below PDB minimum (%d)", initialPods, minBDPAllowedPods),
+		)
 
-		fmt.Printf("\n=== Attempting to delete %d pods ===\n", len(pods.Items))
+		// 2.3 Delete all pods
+		fmt.Printf("\n=== Deleting all %d pods ===\n", initialPods)
 		for _, pod := range pods.Items {
-			fmt.Printf("Deleting pod: %s\n", pod.Name)
 			err := clientset.CoreV1().Pods("test-ns").Delete(
 				context.TODO(),
 				pod.Name,
 				metav1.DeleteOptions{},
 			)
-			if err != nil {
-				fmt.Printf("Failed to delete pod %s: %v\n", pod.Name, err)
-			} else {
-				fmt.Printf("Successfully initiated deletion of pod %s\n", pod.Name)
-			}
-		}
-	})
-
-	ginkgo.It("should measure pod listing latency", func() {
-		fmt.Printf("\n=== Starting pod listing latency test ===\n")
-		testStartTime := time.Now()
-		for i := 0; ; {
-			start := time.Now()
-			pods, err := clientset.CoreV1().Pods("test-ns").List(
-				context.TODO(),
-				metav1.ListOptions{},
-			)
-			latency := time.Since(start)
-
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			fmt.Printf("Attempt %d | Latency: %v | Pod count: %d\n",
-				i+1, latency, len(pods.Items))
-
-			if len(pods.Items) > 0 {
-				fmt.Println("Current pods:")
-				for _, pod := range pods.Items {
-					fmt.Printf("  - %s (Phase: %s)\n", pod.Name, pod.Status.Phase)
-				}
-			}
-			if len(pods.Items) >= initialNumPods {
-				fmt.Printf("\n=== Pod number recovered to at least original demand %d, continuing... ===\n", len(pods.Items))
-				break
-			}
-			if time.Since(testStartTime) > 10*time.Second {
-				fmt.Printf("\n=== Pod number didnt recover to original yet (currently: %d, original: %d), contnuing... ===\n", len(pods.Items), initialNumPods)
-				break
-			}
-
-			time.Sleep(500 * time.Millisecond) // Brief pause between attempts
 		}
+
+		// 2.4 Immediate post-deletion check
+		startPostCheck := time.Now()
+		postDeletePods, err := clientset.CoreV1().Pods("test-ns").List(
+			context.TODO(),
+			metav1.ListOptions{FieldSelector: "status.phase=Running"},
+		)
+		postCheckDuration := time.Since(startPostCheck)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		finalPods := len(postDeletePods.Items)
+
+		// 3. Print results
+		fmt.Printf("\n=== Pod Count Results ===")
+		fmt.Printf("\nInitial Pods: %d", initialPods)
+		fmt.Printf("\nPost-Deletion Pods: %d", finalPods)
+		fmt.Printf("\nGet Duration: %v", getDuration.Round(time.Millisecond))
+		fmt.Printf("\nPost-Check Duration: %v\n", postCheckDuration.Round(time.Millisecond))
+
+		// 4. Final validation
+		gomega.Expect(int32(finalPods)).To(
+			gomega.BeNumerically(">=", minBDPAllowedPods),
+			fmt.Sprintf("Post-deletion pods (%d) below PDB minimum (%d)", finalPods, minBDPAllowedPods),
+		)
 	})
 
-	ginkgo.It("should modify existing deployment", func() {
-		deploymentName := "app"
-
-		// Get current deployment
-		deploy, err := clientset.AppsV1().Deployments("test-ns").Get(
-			context.TODO(),
-			deploymentName,
-			metav1.GetOptions{},
-		)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		// Modify replicas
-		fmt.Printf("\n=== Updating replicas from %d to 3 ===\n", *deploy.Spec.Replicas)
-		*deploy.Spec.Replicas = 3
-
-		// Modify container image
-		containerFound := false
-		for i, container := range deploy.Spec.Template.Spec.Containers {
-			if container.Name == "main-app" {
-				fmt.Printf("Updating image from %s to busybox:latest\n", container.Image)
-				deploy.Spec.Template.Spec.Containers[i].Image = "busybox:latest"
-				containerFound = true
-				break
-			}
-		}
-		gomega.Expect(containerFound).To(gomega.BeTrue(), "Main container not found")
-
-		// Apply updates
-		_, err = clientset.AppsV1().Deployments("test-ns").Update(
-			context.TODO(),
-			deploy,
-			metav1.UpdateOptions{},
-		)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		// Verify changes
-		updatedDeploy, err := clientset.AppsV1().Deployments("test-ns").Get(
-			context.TODO(),
-			deploymentName,
-			metav1.GetOptions{},
-		)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		fmt.Printf("\n=== Update Verification ===\n")
-		fmt.Printf("Current Replicas: %d\n", *updatedDeploy.Spec.Replicas)
-		for _, c := range updatedDeploy.Spec.Template.Spec.Containers {
-			if c.Name == "main-app" {
-				fmt.Printf("Current Image: %s\n", c.Image)
-			}
-		}
-	})
 	ginkgo.It("wait", func() {
 		time.Sleep(200 * time.Second)
 
