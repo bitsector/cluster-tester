@@ -103,7 +103,7 @@ var _ = ginkgo.Describe("Affinity E2E test", ginkgo.Ordered, func() {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Wait for HPA to be triggered ===\n")
-		time.Sleep(200 * time.Second)
+		time.Sleep(150 * time.Second)
 	})
 
 	ginkgo.It("should ensure dependent pods are in same zone as zone-marker", func() {

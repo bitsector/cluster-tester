@@ -13,15 +13,15 @@ spec:
       labels:
         app: dependent-app
     spec:
-      affinity:
-        podAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values: ["desired-zone-for-affinity"]
-            topologyKey: "topology.kubernetes.io/zone"
+      # affinity:
+      #   podAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #     - labelSelector:
+      #         matchExpressions:
+      #         - key: app
+      #           operator: In
+      #           values: ["desired-zone-for-affinity"]
+      #       topologyKey: "topology.kubernetes.io/zone"
       containers:
       - name: main-app
         image: nginx:alpine
