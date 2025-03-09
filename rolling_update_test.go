@@ -13,6 +13,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -134,21 +135,104 @@ var _ = ginkgo.Describe("Rolling Update E2E test", ginkgo.Ordered, func() {
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Waiting for rollout to complete ===\n")
-		gomega.Eventually(func() bool {
+		// Retrieve strategy parameters
+		deployment, err := clientset.AppsV1().Deployments("test-ns").Get(
+			context.TODO(),
+			"app",
+			metav1.GetOptions{},
+		)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		rollingUpdate := deployment.Spec.Strategy.RollingUpdate
+		if rollingUpdate == nil {
+			ginkgo.Fail("Deployment does not have RollingUpdate strategy")
+		}
+
+		replicas := *deployment.Spec.Replicas
+		maxSurgeValue, err := intstr.GetValueFromIntOrPercent(rollingUpdate.MaxSurge, int(replicas), true)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		maxUnavailableValue, err := intstr.GetValueFromIntOrPercent(rollingUpdate.MaxUnavailable, int(replicas), true)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		fmt.Printf("\n=== Monitoring rollout (maxSurge=%d, maxUnavailable=%d) ===\n", maxSurgeValue, maxUnavailableValue)
+
+		gomega.Eventually(func() error {
+			// Get latest deployment status
 			deployment, err := clientset.AppsV1().Deployments("test-ns").Get(
 				context.TODO(),
 				"app",
 				metav1.GetOptions{},
 			)
 			if err != nil {
-				return false
+				return err
 			}
-			return deployment.Status.UpdatedReplicas == *deployment.Spec.Replicas &&
-				deployment.Status.Replicas == *deployment.Spec.Replicas &&
-				deployment.Status.AvailableReplicas == *deployment.Spec.Replicas
-		}, 3*time.Minute, 5*time.Second).Should(gomega.BeTrue())
 
+			// Check rollout completion
+			if deployment.Status.UpdatedReplicas == *deployment.Spec.Replicas &&
+				deployment.Status.Replicas == *deployment.Spec.Replicas &&
+				deployment.Status.AvailableReplicas == *deployment.Spec.Replicas {
+				return nil // Rollout complete
+			}
+
+			// Monitor pod states
+			pods, err := clientset.CoreV1().Pods("test-ns").List(context.TODO(), metav1.ListOptions{
+				LabelSelector: "app=app", // Match deployment selector
+			})
+			if err != nil {
+				return err
+			}
+
+			var terminating, pending, runningNotReady, ready int
+			for _, pod := range pods.Items {
+				if pod.DeletionTimestamp != nil {
+					terminating++
+					fmt.Printf("[Terminating] %s\n", pod.Name)
+					continue
+				}
+
+				switch pod.Status.Phase {
+				case v1.PodPending:
+					pending++
+					fmt.Printf("[Pending] %s\n", pod.Name)
+				case v1.PodRunning:
+					isReady := false
+					for _, cond := range pod.Status.Conditions {
+						if cond.Type == v1.PodReady && cond.Status == v1.ConditionTrue {
+							isReady = true
+							break
+						}
+					}
+					if isReady {
+						ready++
+						fmt.Printf("[Ready] %s\n", pod.Name)
+					} else {
+						runningNotReady++
+						fmt.Printf("[RunningNotReady] %s\n", pod.Name)
+					}
+				}
+			}
+
+			totalPods := terminating + pending + runningNotReady + ready
+			surge := totalPods - int(replicas)
+			unavailable := terminating + pending + runningNotReady
+
+			// Validate strategy limits
+			if surge > maxSurgeValue {
+				return fmt.Errorf("surge violation: %d > %d (maxSurge)", surge, maxSurgeValue)
+			}
+			if unavailable > maxUnavailableValue {
+				return fmt.Errorf("unavailable violation: %d > %d (maxUnavailable)", unavailable, maxUnavailableValue)
+			}
+
+			fmt.Printf("Pod Status Summary:\n"+
+				"  Total: %d\n  Surge: %d/%d\n  Unavailable: %d/%d\n"+
+				"  Ready: %d\n  RunningNotReady: %d\n  Pending: %d\n  Terminating: %d\n\n",
+				totalPods, surge, maxSurgeValue, unavailable, maxUnavailableValue,
+				ready, runningNotReady, pending, terminating)
+
+			return fmt.Errorf("rollout ongoing") // Continue monitoring
+		}, 3*time.Minute, 5*time.Second).Should(gomega.Succeed())
 	})
 
 })
