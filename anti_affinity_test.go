@@ -106,4 +106,64 @@ var _ = ginkgo.Describe("Anti Affinity E2E test", ginkgo.Ordered, func() {
 		time.Sleep(200 * time.Second)
 	})
 
+	ginkgo.It("should enforce zone separation between zone-marker and dependent-app", func() {
+
+		// Get zone-marker pod information
+		zoneMarkerPods, err := clientset.CoreV1().Pods("test-ns").List(
+			context.TODO(),
+			metav1.ListOptions{LabelSelector: "app=desired-zone-for-anti-affinity"},
+		)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		gomega.Expect(zoneMarkerPods.Items).NotTo(gomega.BeEmpty(), "No zone-marker pods found")
+
+		// Collect all zones from zone-marker pods
+		var forbiddenZones []string
+		for _, zmPod := range zoneMarkerPods.Items {
+			node, err := clientset.CoreV1().Nodes().Get(
+				context.TODO(),
+				zmPod.Spec.NodeName,
+				metav1.GetOptions{},
+			)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			zone := node.Labels["topology.kubernetes.io/zone"]
+			gomega.Expect(zone).NotTo(gomega.BeEmpty(),
+				"Zone label missing on node %s", zmPod.Spec.NodeName)
+
+			forbiddenZones = append(forbiddenZones, zone)
+			fmt.Printf("Zone-Marker Pod: %-20s Node: %-15s Zone: %s\n",
+				zmPod.Name, zmPod.Spec.NodeName, zone)
+
+		}
+
+		// Get dependent-app pods
+		dependentPods, err := clientset.CoreV1().Pods("test-ns").List(
+			context.TODO(),
+			metav1.ListOptions{LabelSelector: "app=dependent-app"},
+		)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		gomega.Expect(dependentPods.Items).NotTo(gomega.BeEmpty(), "No dependent-app pods found")
+
+		// Verify zone separation
+		for _, depPod := range dependentPods.Items {
+			node, err := clientset.CoreV1().Nodes().Get(
+				context.TODO(),
+				depPod.Spec.NodeName,
+				metav1.GetOptions{},
+			)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			podZone := node.Labels["topology.kubernetes.io/zone"]
+			gomega.Expect(podZone).NotTo(gomega.BeEmpty(),
+				"Zone label missing on node %s", depPod.Spec.NodeName)
+
+			fmt.Printf("Dependent Pod: %-20s Node: %-15s Zone: %s\n",
+				depPod.Name, depPod.Spec.NodeName, podZone)
+
+			gomega.Expect(forbiddenZones).NotTo(gomega.ContainElement(podZone),
+				"Pod %s in prohibited zone %s", depPod.Name, podZone)
+		}
+
+	})
+
 })

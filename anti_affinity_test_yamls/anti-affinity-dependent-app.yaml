@@ -20,7 +20,7 @@ spec:
               matchExpressions:
               - key: app
                 operator: In
-                values: ["desired-zone-for-affinity"]  
+                values: ["desired-zone-for-anti-affinity"]  
             topologyKey: "topology.kubernetes.io/zone"
       containers:
       - name: main-app

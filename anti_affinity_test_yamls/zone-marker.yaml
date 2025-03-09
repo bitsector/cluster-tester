@@ -7,11 +7,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: desired-zone-for-affinity
+      app: desired-zone-for-anti-affinity
   template:
     metadata:
       labels:
-        app: desired-zone-for-affinity
+        app: desired-zone-for-anti-affinity
     spec:
       containers:
       - name: nginx
