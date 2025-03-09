@@ -17,10 +17,10 @@ import (
 
 func TestConnectivity(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Cluster Operations Suite")
+	ginkgo.RunSpecs(t, "Basic cluster connectivity test")
 }
 
-var _ = ginkgo.Describe("Cluster Operations", func() {
+var _ = ginkgo.Describe("Basic cluster connectivity test", func() {
 	var clientset *kubernetes.Clientset
 
 	ginkgo.BeforeEach(func() {
