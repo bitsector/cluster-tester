@@ -103,12 +103,13 @@ var _ = ginkgo.Describe("Anti Affinity E2E test", ginkgo.Ordered, func() {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Wait for HPA to be triggered ===\n")
-		time.Sleep(200 * time.Second)
+		time.Sleep(90 * time.Second)
 	})
 
 	ginkgo.It("should enforce zone separation between zone-marker and dependent-app", func() {
 
 		// Get zone-marker pod information
+		fmt.Printf("\n=== Getting zone-marker pod details ===\n")
 		zoneMarkerPods, err := clientset.CoreV1().Pods("test-ns").List(
 			context.TODO(),
 			metav1.ListOptions{LabelSelector: "app=desired-zone-for-anti-affinity"},
@@ -137,6 +138,7 @@ var _ = ginkgo.Describe("Anti Affinity E2E test", ginkgo.Ordered, func() {
 		}
 
 		// Get dependent-app pods
+		fmt.Printf("\n=== Getting dependent-app pods details ===\n")
 		dependentPods, err := clientset.CoreV1().Pods("test-ns").List(
 			context.TODO(),
 			metav1.ListOptions{LabelSelector: "app=dependent-app"},
@@ -145,6 +147,8 @@ var _ = ginkgo.Describe("Anti Affinity E2E test", ginkgo.Ordered, func() {
 		gomega.Expect(dependentPods.Items).NotTo(gomega.BeEmpty(), "No dependent-app pods found")
 
 		// Verify zone separation
+		fmt.Printf("\n=== Validating zone constraints ===\n")
+		var dependentAppZones []string
 		for _, depPod := range dependentPods.Items {
 			node, err := clientset.CoreV1().Nodes().Get(
 				context.TODO(),
@@ -160,9 +164,12 @@ var _ = ginkgo.Describe("Anti Affinity E2E test", ginkgo.Ordered, func() {
 			fmt.Printf("Dependent Pod: %-20s Node: %-15s Zone: %s\n",
 				depPod.Name, depPod.Spec.NodeName, podZone)
 
+			dependentAppZones = append(dependentAppZones, podZone)
+
 			gomega.Expect(forbiddenZones).NotTo(gomega.ContainElement(podZone),
 				"Pod %s in prohibited zone %s", depPod.Name, podZone)
 		}
+		fmt.Printf("Zone-Marker Zones (forbiddened for scheduling): %v\nDependent Pod Zones: %v\n", forbiddenZones, dependentAppZones)
 
 	})
 
