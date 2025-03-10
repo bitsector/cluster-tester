@@ -184,3 +184,25 @@ func GetAffinityStatefulSetTestFiles() ([]byte, []byte, []byte, error) {
 
 	return hpaContent, zoneContent, statefulSetContent, nil
 }
+
+func GetAntiAffinityStatefulSetTestFiles() ([]byte, []byte, []byte, error) {
+	hpaPath := filepath.Join("anti_affinity_statefulset_test_yamls", "hpa-trigger.yaml")
+	hpaContent, err := os.ReadFile(hpaPath)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("HPA trigger file error: %w (checked: %s)", err, hpaPath)
+	}
+
+	zonePath := filepath.Join("anti_affinity_statefulset_test_yamls", "zone-marker.yaml")
+	zoneContent, err := os.ReadFile(zonePath)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("zone marker file error: %w (checked: %s)", err, zonePath)
+	}
+
+	statefulSetPath := filepath.Join("anti_affinity_statefulset_test_yamls", "anti-affinity-dependent-app.yaml")
+	statefulSetContent, err := os.ReadFile(statefulSetPath)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("anti-affinity-dependent StatefulSet file error: %w (checked: %s)", err, statefulSetPath)
+	}
+
+	return hpaContent, zoneContent, statefulSetContent, nil
+}

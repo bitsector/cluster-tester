@@ -18,12 +18,12 @@ import (
 	"example"
 )
 
-func TestDeploymentAntiAffinity(t *testing.T) {
+func TestStatefulSetAntiAffinity(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Deployment Anti Affinity Test Suite")
+	ginkgo.RunSpecs(t, "StatefulSet Anti Affinity Test Suite")
 }
 
-var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, func() {
+var _ = ginkgo.Describe("StatefulSet Anti Affinity E2E test", ginkgo.Ordered, func() {
 	var clientset *kubernetes.Clientset
 	var hpaMaxReplicas int32
 
@@ -75,7 +75,7 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, fun
 	})
 
 	ginkgo.It("should apply anti affinity manifests", func() {
-		hpaYAML, zoneYAML, depYAML, err := example.GetAntiAffinityTestFiles()
+		hpaYAML, zoneYAML, ssYAML, err := example.GetAntiAffinityStatefulSetTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// Parse HPA YAML to extract maxReplicas
@@ -98,12 +98,12 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, fun
 		err = example.ApplyRawManifest(clientset, zoneYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Applying Anti Affinity Deployment manifest ===\n")
-		err = example.ApplyRawManifest(clientset, depYAML)
+		fmt.Printf("\n=== Applying Anti Affinity StatefulSet and Service manifest ===\n")
+		err = example.ApplyRawManifest(clientset, ssYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Wait for HPA to be triggered ===\n")
-		time.Sleep(90 * time.Second)
+		time.Sleep(150 * time.Second)
 	})
 
 	ginkgo.It("should enforce zone separation between zone-marker and dependent-app", func() {
