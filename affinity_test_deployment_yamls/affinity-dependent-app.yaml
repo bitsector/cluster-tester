@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dependent-app
+  namespace: test-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dependent-app
+  template:
+    metadata:
+      labels:
+        app: dependent-app
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values: ["desired-zone-for-affinity"]
+            topologyKey: "topology.kubernetes.io/zone"
+      containers:
+      - name: main-app
+        image: nginx:alpine
+        command: ["sh", "-c"]
+        args: ["sleep 5 && while :; do echo '15^999999' | bc >/dev/null; done"]
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"

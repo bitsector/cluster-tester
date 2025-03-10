@@ -76,19 +76,19 @@ func GetTopologyTestFiles() ([]byte, []byte, error) {
 }
 
 func GetAffinityTestFiles() ([]byte, []byte, []byte, error) {
-	hpaPath := filepath.Join("affinity_test_yamls", "hpa-trigger.yaml")
+	hpaPath := filepath.Join("affinity_test_deployment_yamls", "hpa-trigger.yaml")
 	hpaContent, err := os.ReadFile(hpaPath)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("HPA trigger file error: %w (checked: %s)", err, hpaPath)
 	}
 
-	zonePath := filepath.Join("affinity_test_yamls", "zone-marker.yaml")
+	zonePath := filepath.Join("affinity_test_deployment_yamls", "zone-marker.yaml")
 	zoneContent, err := os.ReadFile(zonePath)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("zone marker file error: %w (checked: %s)", err, zonePath)
 	}
 
-	deploymentPath := filepath.Join("affinity_test_yamls", "affinity-dependent-app.yaml")
+	deploymentPath := filepath.Join("affinity_test_deployment_yamls", "affinity-dependent-app.yaml")
 	deploymentContent, err := os.ReadFile(deploymentPath)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("affinity-dependent deployment file error: %w (checked: %s)", err, deploymentPath)
