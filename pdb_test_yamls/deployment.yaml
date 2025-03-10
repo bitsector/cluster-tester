@@ -5,6 +5,11 @@ metadata:
   namespace: test-ns
 spec:
   replicas: 6
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 6       # No limit 
+      maxUnavailable: 6 # Allow all pods to be unaviailable to check if PDB keeps up this limit
   selector:
     matchLabels:
       app: app
