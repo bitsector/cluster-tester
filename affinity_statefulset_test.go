@@ -18,12 +18,12 @@ import (
 	"example"
 )
 
-func TestDeploymentAffinity(t *testing.T) {
+func TestStatefulSetAffinity(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Deployment Affinity Test Suite")
+	ginkgo.RunSpecs(t, "StatefulSet Affinity Test Suite")
 }
 
-var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, func() {
+var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, func() {
 	var clientset *kubernetes.Clientset
 	var hpaMaxReplicas int32
 
@@ -75,7 +75,7 @@ var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, func() {
 	})
 
 	ginkgo.It("should apply affinity manifests", func() {
-		hpaYAML, zoneYAML, depYAML, err := example.GetAffinityDeploymentTestFiles()
+		hpaYAML, zoneYAML, ssYAML, err := example.GetAffinityStatefulSetTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// Parse HPA YAML to extract maxReplicas
@@ -99,7 +99,7 @@ var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, func() {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Applying Affinity-Deployment manifest ===\n")
-		err = example.ApplyRawManifest(clientset, depYAML)
+		err = example.ApplyRawManifest(clientset, ssYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Wait for HPA to be triggered ===\n")
@@ -133,18 +133,18 @@ var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, func() {
 
 		// Get dependent-app pods details
 		fmt.Printf("\n=== Getting dependent-app pods details ===\n")
-		depPods, err := clientset.CoreV1().Pods("test-ns").List(
+		ssPods, err := clientset.CoreV1().Pods("test-ns").List(
 			context.TODO(),
 			metav1.ListOptions{
 				LabelSelector: "app=dependent-app",
 			},
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		gomega.Expect(depPods.Items).NotTo(gomega.BeEmpty(),
-			"No dependent-app pods found. Check deployment status.")
+		gomega.Expect(ssPods.Items).NotTo(gomega.BeEmpty(),
+			"No dependent-app pods found. Check StatefulSet status.")
 
 		var depZones []string
-		for _, pod := range depPods.Items {
+		for _, pod := range ssPods.Items {
 			node, err := clientset.CoreV1().Nodes().Get(
 				context.TODO(),
 				pod.Spec.NodeName,
