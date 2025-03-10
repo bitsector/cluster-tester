@@ -132,13 +132,12 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 		}
 
 		fmt.Printf("\n=== Wait for HPA to trigger ===\n")
-		time.Sleep(100 * time.Second)
+		time.Sleep(150 * time.Second)
 
 	})
 
 	ginkgo.It("should verify topology constraints", func() {
 		fmt.Printf("\n=== Verifying pod scale count and distribution ===\n")
-		time.Sleep(100 * time.Second)
 
 		deployment, err := clientset.AppsV1().Deployments("test-ns").Get(
 			context.TODO(),
