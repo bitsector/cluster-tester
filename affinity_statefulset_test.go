@@ -98,7 +98,7 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, func() 
 		err = example.ApplyRawManifest(clientset, zoneYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Applying Affinity-Deployment manifest ===\n")
+		fmt.Printf("\n=== Applying Affinity StatefulSet and Service manifest ===\n")
 		err = example.ApplyRawManifest(clientset, ssYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
