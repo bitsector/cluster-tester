@@ -75,7 +75,7 @@ func GetTopologyTestFiles() ([]byte, []byte, error) {
 	return hpaContent, deploymentContent, nil
 }
 
-func GetAffinityTestFiles() ([]byte, []byte, []byte, error) {
+func GetAffinityDeploymentTestFiles() ([]byte, []byte, []byte, error) {
 	hpaPath := filepath.Join("affinity_test_deployment_yamls", "hpa-trigger.yaml")
 	hpaContent, err := os.ReadFile(hpaPath)
 	if err != nil {
