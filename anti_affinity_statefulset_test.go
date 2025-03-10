@@ -103,7 +103,7 @@ var _ = ginkgo.Describe("StatefulSet Anti Affinity E2E test", ginkgo.Ordered, fu
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Wait for HPA to be triggered ===\n")
-		time.Sleep(150 * time.Second)
+		time.Sleep(90 * time.Second)
 	})
 
 	ginkgo.It("should enforce zone separation between zone-marker and dependent-app", func() {
