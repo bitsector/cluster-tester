@@ -113,7 +113,7 @@ var _ = ginkgo.Describe("Rolling Update E2E test", ginkgo.Ordered, func() {
 	})
 
 	ginkgo.It("should perform rolling update with updated CPU requests", func() {
-		fmt.Printf("\n=== Triggering rolling update with new CPU requests ===\n")
+		fmt.Printf("\n=== Preparing rolling update with new CPU requests ===\n")
 
 		// Get existing deployment
 		currentDeployment, err := clientset.AppsV1().Deployments("test-ns").Get(
@@ -123,10 +123,11 @@ var _ = ginkgo.Describe("Rolling Update E2E test", ginkgo.Ordered, func() {
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		// Update container spec using server-side apply
+		// Update container spec CPU to new value
 		newDeployment := currentDeployment.DeepCopy()
 		newDeployment.Spec.Template.Spec.Containers[0].Resources.Requests[v1.ResourceCPU] = resource.MustParse("100m")
 
+		fmt.Printf("\n=== Triggering rolling update with new CPU requests ===\n")
 		_, err = clientset.AppsV1().Deployments("test-ns").Update(
 			context.TODO(),
 			newDeployment,
