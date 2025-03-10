@@ -9,6 +9,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -135,7 +136,7 @@ var _ = ginkgo.Describe("Rolling Update E2E test", ginkgo.Ordered, func() {
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		// Retrieve strategy parameters
+		// Retrieve deployment with updated configuration
 		deployment, err := clientset.AppsV1().Deployments("test-ns").Get(
 			context.TODO(),
 			"app",
@@ -143,22 +144,38 @@ var _ = ginkgo.Describe("Rolling Update E2E test", ginkgo.Ordered, func() {
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		rollingUpdate := deployment.Spec.Strategy.RollingUpdate
-		if rollingUpdate == nil {
-			ginkgo.Fail("Deployment does not have RollingUpdate strategy")
+		// Validate deployment strategy configuration
+		if deployment.Spec.Strategy.Type != appsv1.RollingUpdateDeploymentStrategyType {
+			ginkgo.Fail("Deployment is not using RollingUpdate strategy")
 		}
 
+		rollingUpdate := deployment.Spec.Strategy.RollingUpdate
+		if rollingUpdate == nil {
+			ginkgo.Fail("Deployment missing RollingUpdate configuration")
+		}
+
+		// Get strategy parameters
 		replicas := *deployment.Spec.Replicas
+		minReadySeconds := deployment.Spec.MinReadySeconds
+
 		maxSurgeValue, err := intstr.GetValueFromIntOrPercent(rollingUpdate.MaxSurge, int(replicas), true)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		maxUnavailableValue, err := intstr.GetValueFromIntOrPercent(rollingUpdate.MaxUnavailable, int(replicas), true)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Monitoring rollout (maxSurge=%d, maxUnavailable=%d) ===\n", maxSurgeValue, maxUnavailableValue)
+		fmt.Printf("\n=== Deployment Strategy Configuration ===\n"+
+			"  Replicas: %d\n"+
+			"  MaxSurge: %s (%d pods)\n"+
+			"  MaxUnavailable: %s (%d pods)\n"+
+			"  MinReadySeconds: %d\n\n",
+			replicas,
+			rollingUpdate.MaxSurge.String(), maxSurgeValue,
+			rollingUpdate.MaxUnavailable.String(), maxUnavailableValue,
+			minReadySeconds)
 
+		rolloutCheckNum := 1
 		gomega.Eventually(func() error {
-			// Get latest deployment status
 			deployment, err := clientset.AppsV1().Deployments("test-ns").Get(
 				context.TODO(),
 				"app",
@@ -177,12 +194,13 @@ var _ = ginkgo.Describe("Rolling Update E2E test", ginkgo.Ordered, func() {
 
 			// Monitor pod states
 			pods, err := clientset.CoreV1().Pods("test-ns").List(context.TODO(), metav1.ListOptions{
-				LabelSelector: "app=app", // Match deployment selector
+				LabelSelector: "app=app",
 			})
 			if err != nil {
 				return err
 			}
 
+			fmt.Printf("\n=== Sample checking rolling update status (attempt %d): ===\n\n", rolloutCheckNum)
 			var terminating, pending, runningNotReady, ready int
 			for _, pod := range pods.Items {
 				if pod.DeletionTimestamp != nil {
@@ -219,19 +237,27 @@ var _ = ginkgo.Describe("Rolling Update E2E test", ginkgo.Ordered, func() {
 
 			// Validate strategy limits
 			if surge > maxSurgeValue {
-				return fmt.Errorf("surge violation: %d > %d (maxSurge)", surge, maxSurgeValue)
+				return fmt.Errorf("maxSurge violation: %d > %d (from %s)",
+					surge, maxSurgeValue, rollingUpdate.MaxSurge)
 			}
 			if unavailable > maxUnavailableValue {
-				return fmt.Errorf("unavailable violation: %d > %d (maxUnavailable)", unavailable, maxUnavailableValue)
+				return fmt.Errorf("maxUnavailable violation: %d > %d (from %s)",
+					unavailable, maxUnavailableValue, rollingUpdate.MaxUnavailable)
 			}
 
-			fmt.Printf("Pod Status Summary:\n"+
-				"  Total: %d\n  Surge: %d/%d\n  Unavailable: %d/%d\n"+
-				"  Ready: %d\n  RunningNotReady: %d\n  Pending: %d\n  Terminating: %d\n\n",
-				totalPods, surge, maxSurgeValue, unavailable, maxUnavailableValue,
+			rolloutCheckNum++
+
+			fmt.Printf("\nRollout Status:\n"+
+				"  Total Pods: %d\n"+
+				"  Surge Usage: %d/%s\n"+
+				"  Unavailable: %d/%s\n"+
+				"  Ready: %d | RunningNotReady: %d | Pending: %d | Terminating: %d\n\n",
+				totalPods,
+				surge, rollingUpdate.MaxSurge.String(),
+				unavailable, rollingUpdate.MaxUnavailable.String(),
 				ready, runningNotReady, pending, terminating)
 
-			return fmt.Errorf("rollout ongoing") // Continue monitoring
+			return fmt.Errorf("rollout in progress")
 		}, 3*time.Minute, 5*time.Second).Should(gomega.Succeed())
 	})
 
