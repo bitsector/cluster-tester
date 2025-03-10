@@ -106,16 +106,16 @@ var _ = ginkgo.Describe("PDB E2E test", ginkgo.Ordered, func() {
 		fmt.Printf("\n=== Minimum allowed pods from PDB: %d ===\n", minBDPAllowedPods)
 
 		// Apply all the manifests
-		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
-		err = example.ApplyRawManifest(clientset, hpaYAML)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
 		fmt.Printf("\n=== Applying PDB manifest ===\n")
 		err = example.ApplyRawManifest(clientset, pdbYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Applying Deployment manifest ===\n")
 		err = example.ApplyRawManifest(clientset, depYAML)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
+		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Wait for Pods to schedule ===\n")

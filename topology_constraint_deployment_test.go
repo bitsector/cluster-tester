@@ -89,12 +89,12 @@ var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		hpaMaxReplicas = hpaConfig.Spec.MaxReplicas
 
-		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
-		err = example.ApplyRawManifest(clientset, hpaYAML)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
 		fmt.Printf("\n=== Applying Deployment manifest ===\n")
 		err = example.ApplyRawManifest(clientset, depYAML)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
+		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		time.Sleep(10 * time.Second)

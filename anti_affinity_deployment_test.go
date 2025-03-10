@@ -90,16 +90,16 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, fun
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		hpaMaxReplicas = hpaConfig.Spec.MaxReplicas
 
-		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
-		err = example.ApplyRawManifest(clientset, hpaYAML)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
 		fmt.Printf("\n=== Applying Zone Marker manifest ===\n")
 		err = example.ApplyRawManifest(clientset, zoneYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Applying Anti Affinity Deployment manifest ===\n")
 		err = example.ApplyRawManifest(clientset, depYAML)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
+		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Wait for HPA to be triggered ===\n")
