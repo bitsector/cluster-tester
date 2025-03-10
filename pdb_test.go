@@ -123,12 +123,10 @@ var _ = ginkgo.Describe("PDB E2E test", ginkgo.Ordered, func() {
 
 	ginkgo.It("should maintain minimum pod count during deletions", func() {
 		//Get current pod count
-		startGet := time.Now()
 		pods, err := clientset.CoreV1().Pods("test-ns").List(
 			context.TODO(),
 			metav1.ListOptions{FieldSelector: "status.phase=Running"},
 		)
-		getDuration := time.Since(startGet)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		initialPods := len(pods.Items)
 		fmt.Printf("\n=== Initial running pods: %d ===\n", initialPods)
@@ -150,28 +148,34 @@ var _ = ginkgo.Describe("PDB E2E test", ginkgo.Ordered, func() {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		}
 
-		// Immediate post-deletion check
-		startPostCheck := time.Now()
-		postDeletePods, err := clientset.CoreV1().Pods("test-ns").List(
-			context.TODO(),
-			metav1.ListOptions{FieldSelector: "status.phase=Running"},
-		)
-		postCheckDuration := time.Since(startPostCheck)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		finalPods := len(postDeletePods.Items)
+		// Immediate post-deletion checks with 5 attempts
+		fmt.Printf("\n=== Performing post-deletion validation (several attempts) ===\n")
+		numAttempts := 10
+		for attempt := 1; attempt <= numAttempts; attempt++ {
+			startPostCheck := time.Now()
+			postDeletePods, err := clientset.CoreV1().Pods("test-ns").List(
+				context.TODO(),
+				metav1.ListOptions{FieldSelector: "status.phase=Running"},
+			)
+			postCheckDuration := time.Since(startPostCheck)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			finalPods := len(postDeletePods.Items)
 
-		// Print results
-		fmt.Printf("\n=== Pod Count Results ===")
-		fmt.Printf("\nInitial Pods: %d", initialPods)
-		fmt.Printf("\nPost-Deletion Pods: %d", finalPods)
-		fmt.Printf("\nGet Duration: %v", getDuration.Round(time.Millisecond))
-		fmt.Printf("\nPost-Check Duration: %v\n", postCheckDuration.Round(time.Millisecond))
+			fmt.Printf("Attempt %d: Running Pods=%d, Sampling Duration=%v\n",
+				attempt,
+				finalPods,
+				postCheckDuration.Round(time.Millisecond))
 
-		// Final validation
-		gomega.Expect(int32(finalPods)).To(
-			gomega.BeNumerically(">=", minBDPAllowedPods),
-			fmt.Sprintf("Post-deletion pods (%d) below PDB minimum (%d)", finalPods, minBDPAllowedPods),
-		)
+			gomega.Expect(int32(finalPods)).To(
+				gomega.BeNumerically(">=", minBDPAllowedPods),
+				fmt.Sprintf("Attempt %d: Running Pod count (%d) violated PDB minimum (%d)",
+					attempt,
+					finalPods,
+					minBDPAllowedPods),
+			)
+		}
+
+		fmt.Printf("\n=== All post-deletion checks passed ===\n")
 	})
 
 })
