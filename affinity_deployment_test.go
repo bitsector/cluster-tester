@@ -75,7 +75,7 @@ var _ = ginkgo.Describe("Affinity E2E test", ginkgo.Ordered, func() {
 	})
 
 	ginkgo.It("should apply affinity manifests", func() {
-		hpaYAML, zoneYAML, depYAML, err := example.GetAffinityTestFiles()
+		hpaYAML, zoneYAML, depYAML, err := example.GetAffinityDeploymentTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// Parse HPA YAML to extract maxReplicas
