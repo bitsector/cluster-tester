@@ -117,7 +117,7 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, func() 
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(markerPods.Items).To(gomega.HaveLen(1),
-			"Should have exactly one zone-marker pod. Check deployment labels.")
+			"Should have exactly one zone-marker pod. Check StatefulSet labels.")
 
 		markerPod := markerPods.Items[0]
 		markerNode, err := clientset.CoreV1().Nodes().Get(
