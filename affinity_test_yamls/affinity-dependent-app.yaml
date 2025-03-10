@@ -27,8 +27,6 @@ spec:
         image: nginx:alpine
         command: ["sh", "-c"]
         args: ["sleep 5 && while :; do echo '15^999999' | bc >/dev/null; done"]
-        ports:
-        - containerPort: 80
         resources:
           requests:
             cpu: "50m"
