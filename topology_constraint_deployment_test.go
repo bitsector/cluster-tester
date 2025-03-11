@@ -18,12 +18,12 @@ import (
 	"example"
 )
 
-func TestTopology(t *testing.T) {
+func TestDeploymentTopology(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Topology Constraints Suite")
+	ginkgo.RunSpecs(t, "Deployment Topology Constraints Suite")
 }
 
-var _ = ginkgo.Describe("Topology E2E test", ginkgo.Ordered, func() {
+var _ = ginkgo.Describe("Deployment Topology E2E test", ginkgo.Ordered, func() {
 	var clientset *kubernetes.Clientset
 	var hpaMaxReplicas int32 // Add global variable declaration
 

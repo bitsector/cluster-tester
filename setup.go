@@ -60,13 +60,13 @@ func GetClient() (*kubernetes.Clientset, error) {
 }
 
 func GetTopologyTestFiles() ([]byte, []byte, error) {
-	hpaPath := filepath.Join("topology_test_yamls", "hpa-trigger.yaml")
+	hpaPath := filepath.Join("topology_test_deployment_yamls", "hpa-trigger.yaml")
 	hpaContent, err := os.ReadFile(hpaPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("HPA file error: %w (checked: %s)", err, hpaPath)
 	}
 
-	deploymentPath := filepath.Join("topology_test_yamls", "topology-dep.yaml")
+	deploymentPath := filepath.Join("topology_test_deployment_yamls", "topology-dep.yaml")
 	deploymentContent, err := os.ReadFile(deploymentPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("deployment file error: %w (checked: %s)", err, deploymentPath)
