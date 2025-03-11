@@ -38,4 +38,5 @@ go test -v ./affinity_statefulset_test.go -ginkgo.focus "StatefulSet Affinity Te
 go test -v ./anti_affinity_statefulset_test.go -ginkgo.focus "StatefulSet Anti Affinity E2E test"
 go test -v ./topology_constraint_statefulset_test.go -ginkgo.focus "StatefulSet Topology E2E test"
 go test -v ./pdb_sts_test.go  -ginkgo.focus "StatefulSet PDB E2E test"
+go test -v ./rolling_update_sts_test.go -ginkgo.focus "StatefulSet Rolling Update E2E test"
 ```
