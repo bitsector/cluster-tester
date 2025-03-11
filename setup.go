@@ -59,7 +59,7 @@ func GetClient() (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(config)
 }
 
-func GetTopologyTestFiles() ([]byte, []byte, error) {
+func GetTopologyDeploymentTestFiles() ([]byte, []byte, error) {
 	hpaPath := filepath.Join("topology_test_deployment_yamls", "hpa-trigger.yaml")
 	hpaContent, err := os.ReadFile(hpaPath)
 	if err != nil {
@@ -205,4 +205,20 @@ func GetAntiAffinityStatefulSetTestFiles() ([]byte, []byte, []byte, error) {
 	}
 
 	return hpaContent, zoneContent, statefulSetContent, nil
+}
+
+func GetStatefulSetTestFiles() ([]byte, []byte, error) {
+	hpaPath := filepath.Join("topology_test_statefulset_yamls", "hpa-trigger.yaml")
+	hpaContent, err := os.ReadFile(hpaPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("HPA file error: %w (checked: %s)", err, hpaPath)
+	}
+
+	statefulsetPath := filepath.Join("topology_test_statefulset_yamls", "topology-statefulset.yaml")
+	statefulsetContent, err := os.ReadFile(statefulsetPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("StatefulSet file error: %w (checked: %s)", err, statefulsetPath)
+	}
+
+	return hpaContent, statefulsetContent, nil
 }

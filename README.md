@@ -31,4 +31,5 @@ go test -v ./rolling_update_deployment_test.go -ginkgo.focus "Rolling Update E2E
 ```bash
 go test -v ./affinity_statefulset_test.go -ginkgo.focus "StatefulSet Affinity Test Suite"
 go test -v ./anti_affinity_statefulset_test.go -ginkgo.focus "StatefulSet Anti Affinity E2E test"
+go test -v ./topology_constraint_statefulset_test.go -ginkgo.focus "StatefulSet Topology E2E test"
 ```

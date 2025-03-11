@@ -18,12 +18,12 @@ import (
 	"example"
 )
 
-func TestDeploymentTopology(t *testing.T) {
+func TestStatefulSetTopology(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Deployment Topology Constraints Suite")
+	ginkgo.RunSpecs(t, "StatefulSet Topology Constraints Suite")
 }
 
-var _ = ginkgo.Describe("Deployment Topology E2E test", ginkgo.Ordered, func() {
+var _ = ginkgo.Describe("StatefulSet Topology E2E test", ginkgo.Ordered, func() {
 	var clientset *kubernetes.Clientset
 	var hpaMaxReplicas int32 // Add global variable declaration
 
@@ -75,7 +75,7 @@ var _ = ginkgo.Describe("Deployment Topology E2E test", ginkgo.Ordered, func() {
 	})
 
 	ginkgo.It("should apply topology manifests", func() {
-		hpaYAML, depYAML, err := example.GetTopologyDeploymentTestFiles()
+		hpaYAML, ssYAML, err := example.GetStatefulSetTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// Parse HPA YAML to extract maxReplicas
@@ -89,8 +89,8 @@ var _ = ginkgo.Describe("Deployment Topology E2E test", ginkgo.Ordered, func() {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		hpaMaxReplicas = hpaConfig.Spec.MaxReplicas
 
-		fmt.Printf("\n=== Applying Deployment manifest ===\n")
-		err = example.ApplyRawManifest(clientset, depYAML)
+		fmt.Printf("\n=== Applying StatefulSet and Service manifest ===\n")
+		err = example.ApplyRawManifest(clientset, ssYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
@@ -103,15 +103,15 @@ var _ = ginkgo.Describe("Deployment Topology E2E test", ginkgo.Ordered, func() {
 	ginkgo.It("should verify topology resources exist", func() {
 		fmt.Printf("\n=== Verifying cluster resources ===\n")
 
-		// Check Deployment exists
-		deployments, err := clientset.AppsV1().Deployments("test-ns").List(
+		// Check StatefulSet exists
+		statefulSets, err := clientset.AppsV1().StatefulSets("test-ns").List(
 			context.TODO(),
 			metav1.ListOptions{},
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		gomega.Expect(deployments.Items).NotTo(gomega.BeEmpty())
-		fmt.Printf("Found %d deployments in namespace:\n", len(deployments.Items))
-		for _, d := range deployments.Items {
+		gomega.Expect(statefulSets.Items).NotTo(gomega.BeEmpty())
+		fmt.Printf("Found %d statefulSets in namespace:\n", len(statefulSets.Items))
+		for _, d := range statefulSets.Items {
 			fmt.Printf("- %s (Replicas: %d)\n", d.Name, *d.Spec.Replicas)
 		}
 
@@ -139,7 +139,7 @@ var _ = ginkgo.Describe("Deployment Topology E2E test", ginkgo.Ordered, func() {
 	ginkgo.It("should verify topology constraints", func() {
 		fmt.Printf("\n=== Verifying pod scale count and distribution ===\n")
 
-		deployment, err := clientset.AppsV1().Deployments("test-ns").Get(
+		statefulSet, err := clientset.AppsV1().StatefulSets("test-ns").Get(
 			context.TODO(),
 			"zone-spread-example",
 			metav1.GetOptions{},
@@ -149,7 +149,7 @@ var _ = ginkgo.Describe("Deployment Topology E2E test", ginkgo.Ordered, func() {
 		pods, err := clientset.CoreV1().Pods("test-ns").List(
 			context.TODO(),
 			metav1.ListOptions{
-				LabelSelector: metav1.FormatLabelSelector(deployment.Spec.Selector),
+				LabelSelector: metav1.FormatLabelSelector(statefulSet.Spec.Selector),
 			},
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
