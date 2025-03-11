@@ -1,4 +1,3 @@
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,7 +6,7 @@ metadata:
 spec:
   clusterIP: None  # Headless service
   selector:
-    app: dependent-app  # Matches StatefulSet's pod labelsapiVersion: apps/v1
+    app: dependent-app
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -16,7 +15,7 @@ metadata:
   namespace: test-ns
 spec:
   replicas: 1
-  serviceName: dependent-app-service  # Matches Service metadata.name
+  serviceName: dependent-app-service
   selector:
     matchLabels:
       app: dependent-app
