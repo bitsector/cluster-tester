@@ -17,14 +17,19 @@ KUBECONFIG=/path/to/.kube/config
 kubectl get nodes -o custom-columns='NAME:.metadata.name,ZONE:.metadata.labels.topology\.kubernetes\.io/zone'
 ```
 
-### run tests
-### Deployment tests
+### Run tests
+
+### Simple connectivity test (make sure you connect to the cluster):
 ```bash
 go test -v ./simple_connectivity_test.go -ginkgo.focus "Basic cluster connectivity test"
+```
+
+### Deployment tests
+```bash
 go test -v ./topology_constraint_deployment_test.go -ginkgo.focus "Deployment Topology E2E test"
 go test -v ./affinity_deployment_test.go -ginkgo.focus "Deployment Affinity Test Suite"
 go test -v ./anti_affinity_deployment_test.go -ginkgo.focus "Deployment Anti Affinity Test Suite"
-go test -v ./pdb_deployment_test.go  -ginkgo.focus "PDB E2E test"
+go test -v ./pdb_deployment_test.go  -ginkgo.focus "Deployment PDB E2E test"
 go test -v ./rolling_update_deployment_test.go -ginkgo.focus "Rolling Update E2E test"
 ```
 ### StatefulSet tests
@@ -32,4 +37,5 @@ go test -v ./rolling_update_deployment_test.go -ginkgo.focus "Rolling Update E2E
 go test -v ./affinity_statefulset_test.go -ginkgo.focus "StatefulSet Affinity Test Suite"
 go test -v ./anti_affinity_statefulset_test.go -ginkgo.focus "StatefulSet Anti Affinity E2E test"
 go test -v ./topology_constraint_statefulset_test.go -ginkgo.focus "StatefulSet Topology E2E test"
+go test -v ./pdb_sts_test.go  -ginkgo.focus "StatefulSet PDB E2E test"
 ```

@@ -19,12 +19,12 @@ import (
 	"example"
 )
 
-func TestPDB(t *testing.T) {
+func TestDeploymentPDB(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Affinity Test Suite")
+	ginkgo.RunSpecs(t, "Deployment PDB Test Suite")
 }
 
-var _ = ginkgo.Describe("PDB E2E test", ginkgo.Ordered, func() {
+var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, func() {
 	var clientset *kubernetes.Clientset
 	var hpaMaxReplicas int32
 	var minBDPAllowedPods int32
@@ -77,7 +77,7 @@ var _ = ginkgo.Describe("PDB E2E test", ginkgo.Ordered, func() {
 	})
 
 	ginkgo.It("should apply PDB manifests", func() {
-		hpaYAML, pdbYAML, depYAML, err := example.GetPDBTestFiles()
+		hpaYAML, pdbYAML, depYAML, err := example.GetPDBDeploymentTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// Parse HPA YAML to extract maxReplicas
@@ -106,14 +106,15 @@ var _ = ginkgo.Describe("PDB E2E test", ginkgo.Ordered, func() {
 		fmt.Printf("\n=== Minimum allowed pods from PDB: %d ===\n", minBDPAllowedPods)
 
 		// Apply all the manifests
-		fmt.Printf("\n=== Applying PDB manifest ===\n")
-		err = example.ApplyRawManifest(clientset, pdbYAML)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
 		fmt.Printf("\n=== Applying Deployment manifest ===\n")
 		err = example.ApplyRawManifest(clientset, depYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
+		fmt.Printf("\n=== Applying PDB manifest ===\n")
+		err = example.ApplyRawManifest(clientset, pdbYAML)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		// HPA probably is not needed for this test
 		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
 		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
