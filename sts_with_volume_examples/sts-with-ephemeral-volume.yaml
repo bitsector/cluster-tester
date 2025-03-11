@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dependent-app-service
+  namespace: test-ns
+spec:
+  clusterIP: None  # Headless service
+  selector:
+    app: dependent-app
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: dependent-app
+  namespace: test-ns
+spec:
+  replicas: 4
+  serviceName: dependent-app-service
+  selector:
+    matchLabels:
+      app: dependent-app
+  template:
+    metadata:
+      labels:
+        app: dependent-app
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values: ["desired-zone-for-anti-affinity"]
+            topologyKey: "topology.kubernetes.io/zone"
+      containers:
+      - name: main-app
+        image: nginx:alpine
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+        volumeMounts:
+        - name: app-data
+          mountPath: /data
+      volumes:
+      - name: app-data
+        emptyDir:
+          sizeLimit: 1Mi  # Smallest possible size (1 Mebibyte)
