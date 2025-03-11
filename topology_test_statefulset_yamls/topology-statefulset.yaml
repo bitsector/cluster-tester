@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-service
+  namespace: test-ns
+spec:
+  clusterIP: None  # Headless service
+  selector:
+    app: dependent-app  # Matches StatefulSet's pod labelsapiVersion: apps/v1
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zone-spread-example
+  namespace: test-ns
+spec:
+  replicas: 1
+  serviceName: app-service  # Matches Service metadata.name
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: myapp
+      containers:
+      - name: app-container
+        image: nginx:alpine
+        command: ["sh", "-c"]
+        args: ["sleep 5 && while :; do echo '15^999999' | bc >/dev/null; done"]
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
