@@ -120,19 +120,19 @@ func GetAntiAffinityTestFiles() ([]byte, []byte, []byte, error) {
 }
 
 func GetPDBTestFiles() ([]byte, []byte, []byte, error) {
-	hpaPath := filepath.Join("pdb_test_yamls", "hpa-trigger.yaml")
+	hpaPath := filepath.Join("pdb_test_deployment_yamls", "hpa-trigger.yaml")
 	hpaContent, err := os.ReadFile(hpaPath)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("HPA trigger file error: %w (checked: %s)", err, hpaPath)
 	}
 
-	deploymentPath := filepath.Join("pdb_test_yamls", "deployment.yaml")
+	deploymentPath := filepath.Join("pdb_test_deployment_yamls", "deployment.yaml")
 	deploymentContent, err := os.ReadFile(deploymentPath)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("deployment file error: %w (checked: %s)", err, deploymentPath)
 	}
 
-	pdbPath := filepath.Join("pdb_test_yamls", "pdb.yaml")
+	pdbPath := filepath.Join("pdb_test_deployment_yamls", "pdb.yaml")
 	pdbContent, err := os.ReadFile(pdbPath)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("PDB file error: %w (checked: %s)", err, pdbPath)
