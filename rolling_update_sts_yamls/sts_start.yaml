@@ -34,3 +34,10 @@ spec:
           requests:
             cpu: "50m"
             memory: "64Mi"
+        volumeMounts:
+        - name: app-data
+          mountPath: /data
+      volumes:
+      - name: app-data
+        emptyDir:
+          sizeLimit: 1Mi
