@@ -21,12 +21,12 @@ import (
 	"example"
 )
 
-func TestRollingUpdate(t *testing.T) {
+func TestRollingUpdateDeployment(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Affinity Test Suite")
+	ginkgo.RunSpecs(t, "Deployment Rolling Update Test Suite")
 }
 
-var _ = ginkgo.Describe("Rolling Update E2E test", ginkgo.Ordered, func() {
+var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, func() {
 	var (
 		clientset      *kubernetes.Clientset
 		hpaMaxReplicas int32
@@ -83,7 +83,7 @@ var _ = ginkgo.Describe("Rolling Update E2E test", ginkgo.Ordered, func() {
 
 	ginkgo.It("should apply Rolling update manifests", func() {
 		var err error
-		depStartYAML, hpaYAML, _, err = example.GetRollingUpdateTestFiles()
+		depStartYAML, hpaYAML, _, err = example.GetRollingUpdateDeploymentTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// Parse HPA YAML to extract maxReplicas

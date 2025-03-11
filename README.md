@@ -30,7 +30,7 @@ go test -v ./topology_constraint_deployment_test.go -ginkgo.focus "Deployment To
 go test -v ./affinity_deployment_test.go -ginkgo.focus "Deployment Affinity Test Suite"
 go test -v ./anti_affinity_deployment_test.go -ginkgo.focus "Deployment Anti Affinity Test Suite"
 go test -v ./pdb_deployment_test.go  -ginkgo.focus "Deployment PDB E2E test"
-go test -v ./rolling_update_deployment_test.go -ginkgo.focus "Rolling Update E2E test"
+go test -v ./rolling_update_deployment_test.go -ginkgo.focus "Deployment Rolling Update E2E test"
 ```
 ### StatefulSet tests
 ```bash
