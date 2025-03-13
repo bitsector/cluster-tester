@@ -70,7 +70,7 @@ func GetClient() (*kubernetes.Clientset, error) {
 		if err != nil {
 			return nil, fmt.Errorf("config creation error: %w", err)
 		}
-		fmt.Errorf("Running test with access mode KUBECONFIG")
+		fmt.Printf("Running test with access mode KUBECONFIG")
 		return kubernetes.NewForConfig(config)
 
 	case "K8S_API":
@@ -78,7 +78,7 @@ func GetClient() (*kubernetes.Clientset, error) {
 		if err != nil {
 			return nil, fmt.Errorf("API credentials error: %w", err)
 		}
-		fmt.Errorf("Running test with access mode K8S_API")
+		fmt.Printf("Running test with access mode K8S_API")
 		return kubernetes.NewForConfig(config)
 
 	default:
