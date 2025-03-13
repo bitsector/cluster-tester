@@ -49,7 +49,31 @@ func initKubeconfig() error {
 	return nil
 }
 
-func getAPICreds() (*rest.Config, error) {
+func getLocalClusterAPICreds() (*rest.Config, error) {
+	// In-cluster configuration (auto-mounted)
+	tokenPath := "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	caPath := "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+
+	token, err := os.ReadFile(tokenPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed reading token: %w", err)
+	}
+
+	caCert, err := os.ReadFile(caPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed reading CA cert: %w", err)
+	}
+
+	return &rest.Config{
+		Host:        "https://kubernetes.default.svc",
+		BearerToken: string(token),
+		TLSClientConfig: rest.TLSClientConfig{
+			CAData: caCert,
+		},
+	}, nil
+}
+
+func getExternalClusterAPICreds() (*rest.Config, error) {
 	apiURL := os.Getenv("K8S_API_URL")
 	if apiURL == "" {
 		return nil, fmt.Errorf("K8S_API_URL environment variable not set")
@@ -103,16 +127,24 @@ func GetClient() (*kubernetes.Clientset, error) {
 		fmt.Printf("Running test with access mode KUBECONFIG")
 		return kubernetes.NewForConfig(config)
 
-	case "K8S_API":
-		config, err := getAPICreds()
+	case "EXTERNAL_K8S_API":
+		config, err := getExternalClusterAPICreds()
 		if err != nil {
 			return nil, fmt.Errorf("API credentials error: %w", err)
 		}
-		fmt.Printf("Running test with access mode K8S_API")
+		fmt.Printf("Running test with access mode EXTERNAL_K8S_API")
+		return kubernetes.NewForConfig(config)
+
+	case "LOCAL_K8S_API":
+		config, err := getLocalClusterAPICreds()
+		if err != nil {
+			return nil, fmt.Errorf("API credentials error: %w", err)
+		}
+		fmt.Printf("Running test with access mode LOCAL_K8S_API")
 		return kubernetes.NewForConfig(config)
 
 	default:
-		fmt.Printf("Invalid .env ACCESS_MODE: %s. Must be KUBECONFIG or K8S_API\n", accessMode)
+		fmt.Printf("Invalid .env ACCESS_MODE: %s. Must be KUBECONFIG or EXTERNAL_K8S_API\n", accessMode)
 		os.Exit(1)
 		return nil, fmt.Errorf(".env invalid access mode") // For compiler satisfaction
 	}

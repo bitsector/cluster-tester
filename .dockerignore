@@ -1,0 +1,7 @@
+**/.git
+**/temp/
+**/get_external_cluster_api_access/
+**/LICENSE
+**/README.md
+**/Dockerfile
+**/sts_with_volume_examples/
