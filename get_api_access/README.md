@@ -66,3 +66,26 @@ kubectl create token e2e-test-sa -n test-ns \
   --bound-object-kind Secret \
   --bound-object-name e2e-test-token \
   --bound-object-uid $SECRET_UID
+
+
+# 8. Export to env variables:
+
+# Get API Server URL
+export K8S_API_URL=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
+
+# Get Token (short-lived)
+export K8S_TOKEN=$(kubectl create token e2e-test-sa -n test-ns --duration=1h)
+
+# Get CA Cert (formatted for environment variable)
+export K8S_CA_CERT=$(kubectl get secret e2e-test-token -n test-ns -o jsonpath='{.data.ca\.crt}' | base64 -d | sed -e 's/$/\\n/' | tr -d '\n')
+
+# 9. Delete all elementes from the cluster/project
+
+# 9.1. Delete ClusterRoleBinding (cluster-scoped)
+kubectl delete clusterrolebinding e2e-test-binding
+
+# 9.2. Delete ClusterRole (cluster-scoped)
+kubectl delete clusterrole e2e-test-role
+
+# 9.3. Delete namespace and all contained resources (service account, secret)
+kubectl delete namespace test-ns
