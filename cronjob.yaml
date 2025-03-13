@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: e2e-test-sa
+  namespace: default  # or your preferred namespace
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: e2e-test-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "namespaces", "persistentvolumes"]
+    verbs: ["*"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["*"]
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["*"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: e2e-test-binding
+subjects:
+  - kind: ServiceAccount
+    name: e2e-test-sa
+    namespace: default  # match SA namespace above
+roleRef:
+  kind: ClusterRole
+  name: e2e-test-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cluster-e2e-tester-cronjob
+  namespace: default # or your preferred namespace
+spec:
+  schedule: "0 */6 * * *" # every 6 hours, adjust as needed
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: e2e-test-sa
+          containers:
+            - name: e2e-test-runner
+              image: antonbiz/cluster-tester:1.0
+              env:
+                - name: ACCESS_MODE
+                  value: "LOCAL_K8S_API"
+          restartPolicy: Never
