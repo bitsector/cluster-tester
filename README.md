@@ -10,6 +10,7 @@ go get github.com/joho/godotenv
 ### Set the path to your local kube config in .env file
 ```bash
 KUBECONFIG=/path/to/.kube/config
+ACCESS_MODE=KUBECONFIG or K8S_API
 ```
 
 ### Make sure the nodes are in seperate regions

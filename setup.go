@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
@@ -46,19 +47,48 @@ func initKubeconfig() error {
 	return nil
 }
 
-func GetClient() (*kubernetes.Clientset, error) {
-	if err := initKubeconfig(); err != nil {
-		return nil, err
-	}
-
-	config, err := clientcmd.BuildConfigFromFlags("", KubeconfigPath)
-	if err != nil {
-		return nil, fmt.Errorf("config creation error: %w", err)
-	}
-
-	return kubernetes.NewForConfig(config)
+func getAPICreds() (*rest.Config, error) {
+	// TODO: Implement API credentials retrieval logic
+	return nil, fmt.Errorf("API credentials mode not implemented")
 }
 
+func GetClient() (*kubernetes.Clientset, error) {
+	// Load .env to get ACCESS_MODE
+	err := godotenv.Load(".env")
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("error loading .env file: %w", err)
+	}
+
+	accessMode := os.Getenv("ACCESS_MODE")
+	switch accessMode {
+	case "KUBECONFIG":
+		if err := initKubeconfig(); err != nil {
+			return nil, err
+		}
+
+		config, err := clientcmd.BuildConfigFromFlags("", KubeconfigPath)
+		if err != nil {
+			return nil, fmt.Errorf("config creation error: %w", err)
+		}
+		fmt.Errorf("Running test with access mode KUBECONFIG")
+		return kubernetes.NewForConfig(config)
+
+	case "K8S_API":
+		config, err := getAPICreds()
+		if err != nil {
+			return nil, fmt.Errorf("API credentials error: %w", err)
+		}
+		fmt.Errorf("Running test with access mode K8S_API")
+		return kubernetes.NewForConfig(config)
+
+	default:
+		fmt.Printf("Invalid .env ACCESS_MODE: %s. Must be KUBECONFIG or K8S_API\n", accessMode)
+		os.Exit(1)
+		return nil, fmt.Errorf(".env invalid access mode") // For compiler satisfaction
+	}
+}
+
+// Rest of the file remains unchanged
 func GetTopologyDeploymentTestFiles() ([]byte, []byte, error) {
 	hpaPath := filepath.Join("topology_test_deployment_yamls", "hpa-trigger.yaml")
 	hpaContent, err := os.ReadFile(hpaPath)
