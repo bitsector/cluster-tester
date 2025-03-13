@@ -17,6 +17,9 @@ metadata:
   name: e2e-test-role
 rules:
 - apiGroups: [""]
+  resources: ["pods", "pods/exec"]  # Add these
+  verbs: ["*"]
+- apiGroups: [""]
   resources: ["namespaces", "persistentvolumes"]
   verbs: ["*"]
 - apiGroups: ["apps"]
@@ -62,11 +65,11 @@ SECRET_UID=$(kubectl get secret e2e-test-token -n test-ns -o jsonpath='{.metadat
 
 # 7. Create token with proper binding
 kubectl create token e2e-test-sa -n test-ns \
-  --duration=8760h \
+  --duration=1h \
   --bound-object-kind Secret \
   --bound-object-name e2e-test-token \
-  --bound-object-uid $SECRET_UID
-
+  --bound-object-uid $SECRET_UID \
+  --audience=kubernetes.default.svc  # Explicit audience
 
 # 8. Export to env variables:
 
@@ -77,7 +80,7 @@ export K8S_API_URL=$(kubectl config view --minify -o jsonpath='{.clusters[0].clu
 export K8S_TOKEN=$(kubectl create token e2e-test-sa -n test-ns --duration=1h)
 
 # Get CA Cert (formatted for environment variable)
-export K8S_CA_CERT=$(kubectl get secret e2e-test-token -n test-ns -o jsonpath='{.data.ca\.crt}' | base64 -d | sed -e 's/$/\\n/' | tr -d '\n')
+export K8S_CA_CERT=$(kubectl get secret e2e-test-token -n test-ns -o jsonpath='{.data.ca\.crt}')
 
 # 9. Delete all elementes from the cluster/project
 
@@ -89,3 +92,12 @@ kubectl delete clusterrole e2e-test-role
 
 # 9.3. Delete namespace and all contained resources (service account, secret)
 kubectl delete namespace test-ns
+
+
+# 10. Test connection:
+
+### 10.1 This should return a yaml with all deployments running in test-ns namespace
+curl -X GET "$K8S_API_URL/apis/apps/v1/namespaces/test-ns/deployments" \
+  -H "Authorization: Bearer $K8S_TOKEN" \
+  --cacert <(echo "$K8S_CA_CERT" | base64 -d)
+

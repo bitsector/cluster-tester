@@ -1,9 +1,11 @@
 package example
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/joho/godotenv"
 
@@ -48,8 +50,36 @@ func initKubeconfig() error {
 }
 
 func getAPICreds() (*rest.Config, error) {
-	// TODO: Implement API credentials retrieval logic
-	return nil, fmt.Errorf("API credentials mode not implemented")
+	apiURL := os.Getenv("K8S_API_URL")
+	if apiURL == "" {
+		return nil, fmt.Errorf("K8S_API_URL environment variable not set")
+	}
+
+	token := os.Getenv("K8S_TOKEN")
+	if token == "" {
+		return nil, fmt.Errorf("K8S_TOKEN environment variable not set")
+	}
+
+	caCert := os.Getenv("K8S_CA_CERT")
+	if caCert == "" {
+		return nil, fmt.Errorf("K8S_CA_CERT environment variable not set")
+	}
+
+	// Process escaped newlines in CA certificate
+	caCert = strings.ReplaceAll(caCert, "\\n", "\n")
+
+	caCertBytes, err := base64.StdEncoding.DecodeString(caCert)
+	if err != nil {
+		return nil, fmt.Errorf("CA cert decoding failed: %w", err)
+	}
+
+	return &rest.Config{
+		Host:        apiURL,
+		BearerToken: token,
+		TLSClientConfig: rest.TLSClientConfig{
+			CAData: caCertBytes,
+		},
+	}, nil
 }
 
 func GetClient() (*kubernetes.Clientset, error) {
@@ -88,7 +118,6 @@ func GetClient() (*kubernetes.Clientset, error) {
 	}
 }
 
-// Rest of the file remains unchanged
 func GetTopologyDeploymentTestFiles() ([]byte, []byte, error) {
 	hpaPath := filepath.Join("topology_test_deployment_yamls", "hpa-trigger.yaml")
 	hpaContent, err := os.ReadFile(hpaPath)
