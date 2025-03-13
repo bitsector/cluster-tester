@@ -9,15 +9,23 @@ kind: ClusterRole
 metadata:
   name: e2e-test-role
 rules:
+  # Full access (*) on pods, pods/log, namespaces, and persistentvolumes
   - apiGroups: [""]
     resources: ["pods", "pods/log", "namespaces", "persistentvolumes"]
     verbs: ["*"]
+  # Restricted to only "list" on nodes
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["list"]
+  # Full access (*) on deployments and statefulsets in the apps API group
   - apiGroups: ["apps"]
     resources: ["deployments", "statefulsets"]
     verbs: ["*"]
+  # Full access (*) on poddisruptionbudgets in the policy API group
   - apiGroups: ["policy"]
     resources: ["poddisruptionbudgets"]
     verbs: ["*"]
+  # Full access (*) on horizontalpodautoscalers in the autoscaling API group
   - apiGroups: ["autoscaling"]
     resources: ["horizontalpodautoscalers"]
     verbs: ["*"]
@@ -49,7 +57,7 @@ spec:
           serviceAccountName: e2e-test-sa
           containers:
             - name: e2e-test-runner
-              image: antonbiz/cluster-tester:1.0
+              image: antonbiz/cluster-tester-debug:1.0 
               env:
                 - name: ACCESS_MODE
                   value: "LOCAL_K8S_API"

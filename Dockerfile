@@ -52,24 +52,25 @@ RUN CGO_ENABLED=0 GOOS=linux go test -c -o cluster-tester \
     ./topology_constraint_statefulset_test.go \
     ./util.go
     
-FROM gcr.io/distroless/static-debian11
+FROM gcr.io/distroless/static-debian11:debug 
 
 # Copy binary and manifests from builder stage explicitly
-COPY --from=builder /app/cluster-tester /
+COPY --from=builder /app/cluster-tester /app/
 COPY --from=builder /app/.env /
 
 # Explicitly copy each *test_yamls directory separately into container
-COPY --from=builder /app/affinity_test_deployment_yamls /test-manifests/affinity_test_deployment_yamls
-COPY --from=builder /app/affinity_test_statefulset_yamls /test-manifests/affinity_test_statefulset_yamls
-COPY --from=builder /app/anti_affinity_statefulset_test_yamls /test-manifests/anti_affinity_statefulset_test_yamls
-COPY --from=builder /app/anti_affinity_test_deployment_yamls /test-manifests/anti_affinity_test_deployment_yamls
-COPY --from=builder /app/pdb_deployment_test_yamls /test-manifests/pdb_deployment_test_yamls
-COPY --from=builder /app/pdb_statefulset_test_yamls /test-manifests/pdb_statefulset_test_yamls
-COPY --from=builder /app/rolling_update_deployment_test_yamls /test-manifests/rolling_update_deployment_test_yamls
-COPY --from=builder /app/rolling_update_sts_yamls /test-manifests/rolling_update_sts_yamls
-COPY --from=builder /app/topology_test_deployment_yamls /test-manifests/topology_test_deployment_yamls
-COPY --from=builder /app/topology_test_statefulset_yamls /test-manifests/topology_test_statefulset_yamls
-
+# Explicitly copy each *test_yamls directory separately into container root
+COPY --from=builder /app/affinity_test_deployment_yamls /app/affinity_test_deployment_yamls
+COPY --from=builder /app/affinity_test_statefulset_yamls /app/affinity_test_statefulset_yamls
+COPY --from=builder /app/anti_affinity_statefulset_test_yamls /app/anti_affinity_statefulset_test_yamls
+COPY --from=builder /app/anti_affinity_test_deployment_yamls /app/anti_affinity_test_deployment_yamls
+COPY --from=builder /app/pdb_deployment_test_yamls /app/pdb_deployment_test_yamls
+COPY --from=builder /app/pdb_statefulset_test_yamls /app/pdb_statefulset_test_yamls
+COPY --from=builder /app/rolling_update_deployment_test_yamls /app/rolling_update_deployment_test_yamls
+COPY --from=builder /app/rolling_update_sts_yamls /app/rolling_update_sts_yamls
+COPY --from=builder /app/topology_test_deployment_yamls /app/topology_test_deployment_yamls
+COPY --from=builder /app/topology_test_statefulset_yamls /app/topology_test_statefulset_yamls
 USER 65534:65534
 
-ENTRYPOINT ["/cluster-tester", "-test.v", "-ginkgo.focus", "Deployment Topology E2E test"]
+ENTRYPOINT ["/app/cluster-tester", "-test.v", "-ginkgo.focus", "Basic cluster connectivity test"]
+# ENTRYPOINT ["/bin/bash"]
