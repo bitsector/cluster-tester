@@ -43,23 +43,19 @@ roleRef:
   name: e2e-test-role
   apiGroup: rbac.authorization.k8s.io
 ---
-apiVersion: batch/v1
-kind: CronJob
+apiVersion: v1
+kind: Pod
 metadata:
-  name: cluster-e2e-tester-cronjob
-  namespace: default # or your preferred namespace
+  name: cluster-tester-debug-pod
 spec:
-  schedule: "0 */6 * * *" # every 6 hours, adjust as needed
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          serviceAccountName: e2e-test-sa
-          containers:
-            - name: e2e-test-runner
-              image: antonbiz/cluster-tester-debug:1.0
-              imagePullPolicy: Always
-              env:
-                - name: ACCESS_MODE
-                  value: "LOCAL_K8S_API"
-          restartPolicy: Never
+  serviceAccountName: e2e-test-sa  # Matches ServiceAccount below
+  containers:
+  - name: debug-container
+    image: antonbiz/cluster-tester-debug:1.0
+    command: ["/bin/sh", "-c", "sleep infinity & wait"]
+    imagePullPolicy: Always
+    securityContext:
+      runAsUser: 65534
+      runAsGroup: 65534
+  restartPolicy: Never
+---

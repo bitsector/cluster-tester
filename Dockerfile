@@ -58,8 +58,7 @@ FROM gcr.io/distroless/static-debian11:debug
 COPY --from=builder /app/cluster-tester /app/
 COPY --from=builder /app/.env /
 
-# Explicitly copy each *test_yamls directory separately into container
-# Explicitly copy each *test_yamls directory separately into container root
+# Explicitly copy each *test_yamls directory separately into container /app/ dir
 COPY --from=builder /app/affinity_test_deployment_yamls /app/affinity_test_deployment_yamls
 COPY --from=builder /app/affinity_test_statefulset_yamls /app/affinity_test_statefulset_yamls
 COPY --from=builder /app/anti_affinity_statefulset_test_yamls /app/anti_affinity_statefulset_test_yamls
@@ -72,5 +71,7 @@ COPY --from=builder /app/topology_test_deployment_yamls /app/topology_test_deplo
 COPY --from=builder /app/topology_test_statefulset_yamls /app/topology_test_statefulset_yamls
 USER 65534:65534
 
-ENTRYPOINT ["/app/cluster-tester", "-test.v", "-ginkgo.focus", "Basic cluster connectivity test"]
-# ENTRYPOINT ["/bin/bash"]
+# ENTRYPOINT ["/app/cluster-tester", "-test.v"] 
+ENTRYPOINT ["/app/cluster-tester", "-test.v", "-ginkgo.focus", "Deployment Affinity Test Suite"]
+# ENTRYPOINT ["/busybox/sh"]
+# ENTRYPOINT ["/busybox/sh", "-c", "sleep infinity & wait"]
