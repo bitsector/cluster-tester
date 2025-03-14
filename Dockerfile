@@ -35,28 +35,34 @@ COPY *.go ./
 # Copy .env file explicitly
 COPY .env ./
 
+# Allos non root user 65534 access all thefiles
+RUN chown -R 65534:65534 . && \
+    chmod -R 755 . && \
+    find . -type f -exec chmod 644 {} \;
+
+
 # Build binary (assuming you have setup.go/util.go as well)
 # Build binary (compile all .go files explicitly)
 RUN CGO_ENABLED=0 GOOS=linux go test -c -o cluster-tester \
-    ./affinity_deployment_test.go \
-    ./affinity_statefulset_test.go \
-    ./anti_affinity_deployment_test.go \
-    ./anti_affinity_statefulset_test.go \
-    ./pdb_deployment_test.go \
-    ./pdb_sts_test.go \
-    ./rolling_update_deployment_test.go \
-    ./rolling_update_sts_test.go \
     ./setup.go \
+    ./util.go \
     ./simple_connectivity_test.go \
+    ./affinity_deployment_test.go \
+    ./anti_affinity_deployment_test.go \
     ./topology_constraint_deployment_test.go \
-    ./topology_constraint_statefulset_test.go \
-    ./util.go
+    ./rolling_update_deployment_test.go \
+    ./pdb_deployment_test.go \
+    ./affinity_statefulset_test.go \
+    ./anti_affinity_statefulset_test.go \
+    ./topology_constraint_statefulset_test.go \ 
+    ./pdb_sts_test.go \
+    ./rolling_update_sts_test.go 
     
 FROM gcr.io/distroless/static-debian11:debug 
 
 # Copy binary and manifests from builder stage explicitly
 COPY --from=builder /app/cluster-tester /app/
-COPY --from=builder /app/.env /
+COPY --from=builder /app/.env /app/
 
 # Explicitly copy each *test_yamls directory separately into container /app/ dir
 COPY --from=builder /app/affinity_test_deployment_yamls /app/affinity_test_deployment_yamls
@@ -69,6 +75,7 @@ COPY --from=builder /app/rolling_update_deployment_test_yamls /app/rolling_updat
 COPY --from=builder /app/rolling_update_sts_yamls /app/rolling_update_sts_yamls
 COPY --from=builder /app/topology_test_deployment_yamls /app/topology_test_deployment_yamls
 COPY --from=builder /app/topology_test_statefulset_yamls /app/topology_test_statefulset_yamls
+
 USER 65534:65534
 
 # ENTRYPOINT ["/app/cluster-tester", "-test.v"] 

@@ -144,7 +144,7 @@ func GetClient() (*kubernetes.Clientset, error) {
 		return kubernetes.NewForConfig(config)
 
 	default:
-		fmt.Printf("Invalid .env ACCESS_MODE: %s. Must be KUBECONFIG or EXTERNAL_K8S_API\n", accessMode)
+		fmt.Printf("Invalid .env ACCESS_MODE: %s. Must be KUBECONFIG, LOCAL_K8S_API or EXTERNAL_K8S_API\n", accessMode)
 		os.Exit(1)
 		return nil, fmt.Errorf(".env invalid access mode") // For compiler satisfaction
 	}

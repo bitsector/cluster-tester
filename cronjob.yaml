@@ -57,7 +57,7 @@ spec:
           serviceAccountName: e2e-test-sa
           containers:
             - name: e2e-test-runner
-              image: antonbiz/cluster-tester-debug:1.0
+              image: antonbiz/cluster-tester-debug:1.1
               imagePullPolicy: Always
               env:
                 - name: ACCESS_MODE

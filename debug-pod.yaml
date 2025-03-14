@@ -51,8 +51,8 @@ spec:
   serviceAccountName: e2e-test-sa  # Matches ServiceAccount below
   containers:
   - name: debug-container
-    image: antonbiz/cluster-tester-debug:1.0
-    command: ["/bin/sh", "-c", "sleep infinity & wait"]
+    image: antonbiz/cluster-tester-debug:1.1
+    command: ["/busybox/sh", "-c", "sleep infinity & wait"]
     imagePullPolicy: Always
     securityContext:
       runAsUser: 65534
