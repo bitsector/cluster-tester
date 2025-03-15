@@ -52,6 +52,7 @@ go test -v ./rolling_update_sts_test.go -ginkgo.focus "StatefulSet Rolling Updat
 
 ### Connectivity Test
 A basic connectivity test. Will attempt to connect to the cluster, list nodes, create a namespace and finish.
+Files: 
 simple_connectivity_test.go
 
 ### Deployment Topology Constraints E2E test
@@ -59,8 +60,10 @@ This test will deploy a HPA and a deployment with a topologySpreadConstraints in
 The Deployment pods will trigger high CPU simulation, this will trigger the HPA, the HPA will trigger the cluster to create more pods.
 Once more pods are created the test code will collect data on all the pods and their zones of schedule, verifying that the 
 topologySpreadConstraints condition is met. The test will fail if and only if the condition is not met.
-File:
+Files:
 topology_constraint_deployment_test.go
+topology_test_deployment_yamls/hpa-trigger.yaml 
+topology_test_deployment_yamls/topology-dep.yaml
 
 ### Deployment PDB E2E test
 The test will deploy a PDB, an HPA and a Deployment. The 2 sub-tests will be attempted:
@@ -73,7 +76,11 @@ is working there still must be at least 5 running pods despite of the deletion. 
 after the deletion. If at no point there were less than 5 running pods - the test will pass, otherwise the test will fail. 
 Both subtests must pass in order for the PDB test to pass. 
 Note: As of this writing PDB tests always fail, we have not yet discovered a reproducible case where PDB was applied and actually worked. 
-File: pdb_deployment_test.go
+Files: 
+pdb_deployment_test.go
+pdb_deployment_test_yamls/deployment.yaml 
+pdb_deployment_test_yamls/hpa-trigger.yaml 
+pdb_deployment_test_yamls/pdb.yaml   
 
 ### Deployment Affinity E2E test
 The test will deploy a zone-marker pod (placed a random zone by K8s), deploy an HPA, and a dependent-app deployment with a pod affinity 
@@ -81,22 +88,34 @@ requirement (podAffinity). The goal of the test is to trigger the deployment to 
 assert that all these pods satisfy the affinity requirement, relative to the zone-marker pod. The deployment's first pod will start running,
 simulate high CPU demand, this will trigger the HPA to create more of the deployment's pods. The test code will then verify that all 
 the pods are placed in the same zone as the zone-marker pod. The test will fail if and only if this condition is not met.  
-File: affinity_deployment_test.go
-
+Files:
+affinity_deployment_test.go
+affinity_test_deployment_yamls/zone-marker.yaml
+affinity_test_deployment_yamls/hpa-trigger.yaml
+affinity_test_deployment_yamls/zone-marker.yaml 
+ 
 ### Deployment Anti Affinity E2E test
 The test will deploy a zone-marker pod (placed a random zone by K8s), deploy an HPA, and a dependent-app deployment with a pod anti affinity 
 requirement (podAntiAffinity). The goal of the test is to trigger the deployment to create more pods and
 assert that all these pods satisfy the anti affinity requirement, relative to the zone-marker pod. The deployment's first pod will start running,
 simulate high CPU demand, this will trigger the HPA to create more of the deployment's pods. The test code will then verify that all 
 the pods are placed outside the zone of the zone-marker pod. The test will fail if and only if this condition is not met.  
-File: anti_affinity_deployment_test.go
+Files: 
+anti_affinity_deployment_test.go
+anti_affinity_test_deployment_yamls/anti-affinity-dependent-app.yaml 
+anti_affinity_test_deployment_yamls/hpa-trigger.yaml 
+anti_affinity_test_deployment_yamls/zone-marker.yaml
 
 ### Deployment Rolling Update E2E test
 The test will deploy a deployment with a RollingUpdate strategy. Once the deployment is up and running, the test code will initiate a rolling
 update (it will change the CPU of the container from 50m to 100m). During the update, the test code will sample repeatedly the state of the pods
 making sure they are in the confines of maxSurge: 1 and maxUnavailable: 25% values. If at no point the deployment pods' status violate the
 rolling update's strategy - the test will pass.
-File: rolling_update_deployment_test.go
+Files: 
+rolling_update_deployment_test.go
+rolling_update_deployment_test_yamls/deployment_start.yaml 
+rolling_update_deployment_test_yamls/deployment_end.yaml 
+rolling_update_deployment_test_yamls/hpa-trigger.yaml
 
 ### StatefulSet PDB E2E test
 The test will deploy a PDB, an HPA and a stateful set. The 2 sub-tests will be attempted:
@@ -105,7 +124,11 @@ is working there still must be at least 5 running pods despite of the deletion. 
 after the deletion. If at no point there were less than 5 running pods - the test will pass, otherwise the test will fail. 
 Both subtests must pass in order for the PDB test to pass. 
 Note: As of this writing PDB tests always fail, we have not yet discovered a reproducible case where PDB was applied and actually worked. 
-File: pdb_sts_test.go
+Files:
+pdb_sts_test.go
+pdb_statefulset_test_yamls/pdb.yaml 
+pdb_statefulset_test_yamls/sts.yaml
+pdb_statefulset_test_yamls/hpa-trigger.yaml
 
 ### StatefulSet Affinity E2E test
 The test will deploy a zone-marker pod (placed a random zone by K8s), deploy an HPA, and a dependent-app stateful set with a pod affinity 
@@ -113,16 +136,40 @@ requirement (podAffinity). The goal of the test is to trigger the stateful set t
 assert that all these pods satisfy the affinity requirement, relative to the zone-marker pod. The stateful set's first pod will start running,
 simulate high CPU demand, this will trigger the HPA to create more of the stateful set's pods. The test code will then verify that all 
 the pods are placed in the same zone as the zone-marker pod. The test will fail if and only if this condition is not met.  
-File: affinity_statefulset_test.go
+Files: 
+affinity_statefulset_test.go
+affinity_test_statefulset_yamls/zone-marker.yaml
+affinity_test_statefulset_yamls/hpa-trigger.yaml 
+affinity_test_statefulset_yamls/affinity-dependent-app.yaml    
 
 ### StatefulSet Rolling Update E2E test
 The test will deploy a stateful set with a rolling update strategy (updateStrategy). Once the stateful set is up and running, the test code 
 will initiate a rolling update (it will change the CPU of the container from 50m to 100m). During the update, the test code will sample
 repeatedly the state of the pods making sure there is at most one unavailable pod in any time. If at no point the stateful set pods' status 
 violate this condition - the test will pass.
-File: rolling_update_sts_test.go:
+Files: 
+rolling_update_sts_test.go
+rolling_update_sts_yamls/sts_end.yaml
+rolling_update_sts_yamls/sts_start.yaml
 
 ### StatefulSet Anti Affinity E2E test
-File: anti_affinity_statefulset_test.go
+The test will deploy a zone-marker pod (placed a random zone by K8s), deploy an HPA, and a dependent-app stateful set with a pod anti affinity 
+requirement (podAntiAffinity). The goal of the test is to trigger the stateful set to create more pods and
+assert that all these pods satisfy the anti affinity requirement, relative to the zone-marker pod. The stateful set's first pod will start running,
+simulate high CPU demand, this will trigger the HPA to create more of the stateful set's pods. The test code will then verify that all 
+the pods are placed in any zone different from the zone-marker's pod zone. The test will fail if and only if this condition is not met.  
+Files: 
+anti_affinity_statefulset_test.go
+anti_affinity_statefulset_test_yamls/zone-marker.yaml
+anti_affinity_statefulset_test_yamls/anti-affinity-dependent-app.yaml 
+anti_affinity_statefulset_test_yamls/hpa-trigger.yaml
+
 ### StatefulSet Topology Constraints E2E test
-File: topology_constraint_statefulset_test.go
+This test will deploy a HPA and a stateful set with a topologySpreadConstraints in its manifests. 
+The stateful set pods will trigger high CPU simulation, this will trigger the HPA, the HPA will trigger the cluster to create more pods.
+Once more pods are created the test code will collect data on all the pods and their zones of schedule, verifying that the 
+topologySpreadConstraints condition is met. The test will fail if and only if the condition is not met.
+Files: 
+topology_constraint_statefulset_test.go
+topology_test_statefulset_yamls/hpa-trigger.yaml
+topology_test_statefulset_yamls/topology-statefulset.yaml
