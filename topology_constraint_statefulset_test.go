@@ -23,11 +23,13 @@ func TestStatefulSetTopology(t *testing.T) {
 	ginkgo.RunSpecs(t, "StatefulSet Topology Constraints Suite")
 }
 
-var _ = ginkgo.Describe("StatefulSet Topology E2E test", ginkgo.Ordered, func() {
+var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Ordered, func() {
 	var clientset *kubernetes.Clientset
 	var hpaMaxReplicas int32 // Add global variable declaration
 
 	ginkgo.BeforeAll(func() {
+		fmt.Printf("\n=== Starting StatefulSet Topology Constraints E2E test ===\n")
+
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())

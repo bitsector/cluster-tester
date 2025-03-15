@@ -34,6 +34,8 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, f
 	)
 
 	ginkgo.BeforeAll(func() {
+		fmt.Printf("\n=== Starting StatefulSet Rolling Update E2E test ===\n")
+
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())

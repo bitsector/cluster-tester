@@ -47,11 +47,15 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cluster-e2e-tester-cronjob
-  namespace: default # or your preferred namespace
+  namespace: default
 spec:
-  schedule: "0 */6 * * *" # every 6 hours, adjust as needed
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid # Prevent concurrent executions
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
+      backoffLimit: 0 # No retries on failure
       template:
         spec:
           serviceAccountName: e2e-test-sa

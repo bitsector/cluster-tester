@@ -28,6 +28,8 @@ var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, func() {
 	var hpaMaxReplicas int32
 
 	ginkgo.BeforeAll(func() {
+		fmt.Printf("\n=== Starting Deployment Affinity E2E test ===\n")
+
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())

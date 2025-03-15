@@ -29,6 +29,8 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, func() {
 	var minBDPAllowedPods int32
 
 	ginkgo.BeforeAll(func() {
+		fmt.Printf("\n=== Starting StatefulSet PDB E2E test ===\n")
+
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
