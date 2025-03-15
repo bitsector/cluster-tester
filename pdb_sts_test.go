@@ -73,6 +73,37 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, func() {
 		if err != nil && !apierrors.IsNotFound(err) {
 			ginkgo.Fail(fmt.Sprintf("Final cleanup failed: %v", err))
 		}
+
+		// Namespace existence verification loop
+		const (
+			timeout  = 1 * time.Minute
+			interval = 500 * time.Millisecond
+		)
+		deadline := time.Now().Add(timeout)
+
+		for {
+			_, err := clientset.CoreV1().Namespaces().Get(
+				context.TODO(),
+				"test-ns",
+				metav1.GetOptions{},
+			)
+
+			if apierrors.IsNotFound(err) {
+				break // Namespace successfully deleted
+			}
+
+			if time.Now().After(deadline) {
+				fmt.Printf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
+				break
+			}
+
+			// Handle transient errors
+			if err != nil {
+				fmt.Printf("Temporary error checking namespace: %v\n", err)
+			}
+
+			time.Sleep(interval)
+		}
 	})
 
 	ginkgo.It("should apply PDB manifests", func() {
@@ -105,7 +136,7 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, func() {
 		fmt.Printf("\n=== Minimum allowed pods from PDB: %d ===\n", minBDPAllowedPods)
 
 		// Apply all the manifests
-		fmt.Printf("\n=== Applying Deployment manifest ===\n")
+		fmt.Printf("\n=== Applying StatefulSet and Service manifest ===\n")
 		err = example.ApplyRawManifest(clientset, ssYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 

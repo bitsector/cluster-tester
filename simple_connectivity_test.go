@@ -5,6 +5,7 @@ import (
 	"example"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -20,58 +21,72 @@ func TestConnectivity(t *testing.T) {
 	ginkgo.RunSpecs(t, "Basic cluster connectivity test")
 }
 
-var _ = ginkgo.Describe("Basic cluster connectivity test", func() {
+var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, func() {
 	var clientset *kubernetes.Clientset
 
-	ginkgo.BeforeEach(func() {
+	ginkgo.BeforeAll(func() {
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// Namespace setup
-		fmt.Printf("\n=== Checking for test-ns namespace ===\n")
-		_, err = clientset.CoreV1().Namespaces().Get(
+		fmt.Printf("\n=== Creating test-ns namespace ===\n")
+		_, err = clientset.CoreV1().Namespaces().Create(
 			context.TODO(),
-			"test-ns",
-			metav1.GetOptions{},
+			&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-ns"}},
+			metav1.CreateOptions{},
 		)
-
-		if apierrors.IsNotFound(err) {
-			fmt.Printf("Namespace test-ns not found, creating...\n")
-			ns := &v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-ns",
-				},
-			}
-			_, err = clientset.CoreV1().Namespaces().Create(
-				context.TODO(),
-				ns,
-				metav1.CreateOptions{},
-			)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			fmt.Printf("Namespace test-ns created successfully\n")
+		if apierrors.IsAlreadyExists(err) {
+			fmt.Printf("Namespace test-ns already exists\n")
 		} else {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			fmt.Printf("Namespace test-ns already exists\n")
+			fmt.Printf("Namespace test-ns created successfully\n")
 		}
 
-		// Cleanup connections
+		// Register cleanup inside setup node
 		ginkgo.DeferCleanup(func() {
-			clientset.CoreV1().RESTClient().(*rest.RESTClient).Client.CloseIdleConnections()
-		})
-
-		// Namespace cleanup
-		ginkgo.DeferCleanup(func() {
-			fmt.Printf("\n=== Cleaning up test-ns namespace ===\n")
+			fmt.Printf("\n=== Final namespace cleanup ===\n")
 			err := clientset.CoreV1().Namespaces().Delete(
 				context.TODO(),
 				"test-ns",
 				metav1.DeleteOptions{},
 			)
 			if err != nil && !apierrors.IsNotFound(err) {
-				ginkgo.Fail(fmt.Sprintf("Failed to delete namespace: %v", err))
+				ginkgo.Fail(fmt.Sprintf("Final cleanup failed: %v", err))
 			}
-			fmt.Printf("Namespace test-ns cleanup initiated\n")
+
+			// Verification loop
+			const (
+				timeout  = 1 * time.Minute
+				interval = 500 * time.Millisecond
+			)
+			deadline := time.Now().Add(timeout)
+
+			for {
+				_, err := clientset.CoreV1().Namespaces().Get(
+					context.TODO(),
+					"test-ns",
+					metav1.GetOptions{},
+				)
+
+				if apierrors.IsNotFound(err) {
+					fmt.Printf("Namespace test-ns successfully removed\n")
+					break
+				}
+
+				if time.Now().After(deadline) {
+					fmt.Printf("\nError: Namespace test-ns still exists after 1 minute\n")
+					break
+				}
+
+				if err != nil {
+					fmt.Printf("Transient error verifying deletion: %v\n", err)
+				}
+
+				time.Sleep(interval)
+			}
+
+			clientset.CoreV1().RESTClient().(*rest.RESTClient).Client.CloseIdleConnections()
 		})
 	})
 
