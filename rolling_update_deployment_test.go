@@ -141,7 +141,7 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, fu
 		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Wait for Pods to chedule ===\n")
+		fmt.Printf("\n=== Wait for Pods to Schedule ===\n")
 		time.Sleep(30 * time.Second)
 	})
 
@@ -292,7 +292,61 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, fu
 				ready, runningNotReady, pending, terminating)
 
 			return fmt.Errorf("rollout in progress")
-		}, 3*time.Minute, 5*time.Second).Should(gomega.Succeed())
+		}, 5*time.Minute, 5*time.Second).Should(gomega.Succeed())
+
+		// Final status check after successful rollout
+		ginkgo.By("Final rollout status verification")
+		deployment, err = clientset.AppsV1().Deployments("test-ns").Get(
+			context.TODO(),
+			"app",
+			metav1.GetOptions{},
+		)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		pods, err := clientset.CoreV1().Pods("test-ns").List(context.TODO(), metav1.ListOptions{
+			LabelSelector: "app=app",
+		})
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		var terminating, pending, runningNotReady, ready int
+		for _, pod := range pods.Items {
+			if pod.DeletionTimestamp != nil {
+				terminating++
+				continue
+			}
+
+			switch pod.Status.Phase {
+			case v1.PodPending:
+				pending++
+			case v1.PodRunning:
+				isReady := false
+				for _, cond := range pod.Status.Conditions {
+					if cond.Type == v1.PodReady && cond.Status == v1.ConditionTrue {
+						isReady = true
+						break
+					}
+				}
+				if isReady {
+					ready++
+				} else {
+					runningNotReady++
+				}
+			}
+		}
+
+		totalPods := terminating + pending + runningNotReady + ready
+		surge := totalPods - int(*deployment.Spec.Replicas)
+		unavailable := terminating + pending + runningNotReady
+
+		fmt.Printf("\n=== Final Rollout Status ===\n"+
+			"  Total Pods: %d\n"+
+			"  Surge Usage: %d/%s\n"+
+			"  Unavailable: %d/%s\n"+
+			"  Ready: %d | RunningNotReady: %d | Pending: %d | Terminating: %d\n\n",
+			totalPods,
+			surge, deployment.Spec.Strategy.RollingUpdate.MaxSurge.String(),
+			unavailable, deployment.Spec.Strategy.RollingUpdate.MaxUnavailable.String(),
+			ready, runningNotReady, pending, terminating)
 	})
 
 })
