@@ -11,12 +11,12 @@ metadata:
 rules:
   # Full access (*) on pods, pods/log, namespaces, and persistentvolumes
   - apiGroups: [""]
-    resources: ["pods", "pods/log", "namespaces", "persistentvolumes"]
+    resources: ["pods", "pods/log", "namespaces", "persistentvolumes","services"]
     verbs: ["*"]
   # Restricted to only "list" on nodes
   - apiGroups: [""]
     resources: ["nodes"]
-    verbs: ["list"]
+    verbs: ["list","get"]
   # Full access (*) on deployments and statefulsets in the apps API group
   - apiGroups: ["apps"]
     resources: ["deployments", "statefulsets"]
