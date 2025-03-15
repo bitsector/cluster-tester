@@ -140,7 +140,6 @@ var _ = ginkgo.Describe("StatefulSet Anti Affinity E2E test", ginkgo.Ordered, fu
 	})
 
 	ginkgo.It("should enforce zone separation between zone-marker and dependent-app", func() {
-
 		// Get zone-marker pod information
 		fmt.Printf("\n=== Getting zone-marker pod details ===\n")
 		zoneMarkerPods, err := clientset.CoreV1().Pods("test-ns").List(
@@ -150,8 +149,11 @@ var _ = ginkgo.Describe("StatefulSet Anti Affinity E2E test", ginkgo.Ordered, fu
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(zoneMarkerPods.Items).NotTo(gomega.BeEmpty(), "No zone-marker pods found")
 
-		// Collect all zones from zone-marker pods
-		var forbiddenZones []string
+		// Collect unique forbidden zones using a map
+		forbiddenZones := make(map[string]struct{})
+		type podInfo struct{ name, node, zone string }
+		var zoneMarkerDetails []podInfo
+
 		for _, zmPod := range zoneMarkerPods.Items {
 			node, err := clientset.CoreV1().Nodes().Get(
 				context.TODO(),
@@ -164,10 +166,18 @@ var _ = ginkgo.Describe("StatefulSet Anti Affinity E2E test", ginkgo.Ordered, fu
 			gomega.Expect(zone).NotTo(gomega.BeEmpty(),
 				"Zone label missing on node %s", zmPod.Spec.NodeName)
 
-			forbiddenZones = append(forbiddenZones, zone)
-			fmt.Printf("Zone-Marker Pod: %-20s Node: %-15s Zone: %s\n",
-				zmPod.Name, zmPod.Spec.NodeName, zone)
+			forbiddenZones[zone] = struct{}{}
+			zoneMarkerDetails = append(zoneMarkerDetails, podInfo{
+				name: zmPod.Name,
+				node: zmPod.Spec.NodeName,
+				zone: zone,
+			})
+		}
 
+		// Log zone-marker details
+		for _, detail := range zoneMarkerDetails {
+			fmt.Printf("Zone-Marker Pod: %-20s Node: %-15s Zone: %s\n",
+				detail.name, detail.node, detail.zone)
 		}
 
 		// Get dependent-app pods
@@ -199,11 +209,19 @@ var _ = ginkgo.Describe("StatefulSet Anti Affinity E2E test", ginkgo.Ordered, fu
 
 			dependentAppZones = append(dependentAppZones, podZone)
 
-			gomega.Expect(forbiddenZones).NotTo(gomega.ContainElement(podZone),
+			// Check against deduplicated forbidden zones
+			gomega.Expect(forbiddenZones).NotTo(gomega.HaveKey(podZone),
 				"Pod %s in prohibited zone %s", depPod.Name, podZone)
 		}
-		fmt.Printf("Zone-Marker Zones (forbiddened for scheduling): %v\nDependent Pod Zones: %v\n", forbiddenZones, dependentAppZones)
 
+		// Convert forbidden zones map to slice for logging
+		forbiddenZonesSlice := make([]string, 0, len(forbiddenZones))
+		for zone := range forbiddenZones {
+			forbiddenZonesSlice = append(forbiddenZonesSlice, zone)
+		}
+
+		fmt.Printf("Zone-Marker Zones (forbidden): %v\nDependent Pod Zones: %v\n",
+			forbiddenZonesSlice, dependentAppZones)
 	})
 
 })
