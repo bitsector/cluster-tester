@@ -76,9 +76,11 @@ COPY --from=builder /app/rolling_update_sts_yamls /app/rolling_update_sts_yamls
 COPY --from=builder /app/topology_test_deployment_yamls /app/topology_test_deployment_yamls
 COPY --from=builder /app/topology_test_statefulset_yamls /app/topology_test_statefulset_yamls
 
+WORKDIR /app
+
 USER 65534:65534
 
-# ENTRYPOINT ["/app/cluster-tester", "-test.v"] 
-ENTRYPOINT ["/app/cluster-tester", "-test.v", "-ginkgo.focus", "Deployment Affinity Test Suite"]
+ENTRYPOINT ["./cluster-tester", "-test.v"] 
+# ENTRYPOINT ["/app/cluster-tester", "-test.v", "-ginkgo.focus", "Deployment Affinity Test Suite"]
 # ENTRYPOINT ["/busybox/sh"]
 # ENTRYPOINT ["/busybox/sh", "-c", "sleep infinity & wait"]
