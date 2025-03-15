@@ -197,21 +197,11 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, f
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		// Retrieve StatefulSet with updated configuration
-		sts, err := clientset.AppsV1().StatefulSets("test-ns").Get(
-			context.TODO(),
-			"app",
-			metav1.GetOptions{},
-		)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		expectedReplicas := *sts.Spec.Replicas
+		expectedReplicas := *newSTS.Spec.Replicas
 		fmt.Printf("\n=== StatefulSet Replicas: %d ===\n", expectedReplicas)
 
 		rolloutCheckNum := 1
 		gomega.Eventually(func() error {
-			startTime := time.Now()
-
 			sts, err := clientset.AppsV1().StatefulSets("test-ns").Get(
 				context.TODO(),
 				"app",
@@ -236,10 +226,9 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, f
 				return err
 			}
 
-			duration := time.Since(startTime).Milliseconds()
-			fmt.Printf("\n=== Pod Check #%d (sampled in %dms) ===\n", rolloutCheckNum, duration)
+			fmt.Printf("\n=== Sample checking rolling update status (attempt %d): ===\n\n", rolloutCheckNum)
 
-			var terminating, pending, running int
+			var terminating, pending, runningNotReady, ready int
 			for _, pod := range pods.Items {
 				if pod.DeletionTimestamp != nil {
 					terminating++
@@ -252,28 +241,79 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, f
 					pending++
 					fmt.Printf("[Pending] %s\n", pod.Name)
 				case v1.PodRunning:
-					running++
-					fmt.Printf("[Running] %s\n", pod.Name)
+					isReady := false
+					for _, cond := range pod.Status.Conditions {
+						if cond.Type == v1.PodReady && cond.Status == v1.ConditionTrue {
+							isReady = true
+							break
+						}
+					}
+					if isReady {
+						ready++
+						fmt.Printf("[Ready] %s\n", pod.Name)
+					} else {
+						runningNotReady++
+						fmt.Printf("[RunningNotReady] %s\n", pod.Name)
+					}
 				}
 			}
 
-			// Validate minimum running pods requirement
-			if running < int(expectedReplicas)-1 {
-				return fmt.Errorf("running pods %d < %d (replicas-1)", running, expectedReplicas-1)
-			}
-
-			totalPods := terminating + pending + running
+			totalPods := len(pods.Items)
 			fmt.Printf("\nRollout Status:\n"+
 				"  Total Pods: %d\n"+
-				"  Running: %d | Pending: %d | Terminating: %d\n"+
-				"  Minimum Required Running: %d\n\n",
+				"  Ready: %d | RunningNotReady: %d | Pending: %d | Terminating: %d\n\n",
 				totalPods,
-				running, pending, terminating,
-				expectedReplicas-1)
+				ready, runningNotReady, pending, terminating)
+
+			// Validate minimum ready pods requirement
+			if ready < int(expectedReplicas)-1 {
+				return fmt.Errorf("ready pods %d < %d (replicas-1)", ready, expectedReplicas-1)
+			}
 
 			rolloutCheckNum++
 			return fmt.Errorf("rollout in progress")
-		}, 5*time.Minute, 1*time.Millisecond).Should(gomega.Succeed(), "StatefulSet rollout timed out after 5 minutes")
+		}, 5*time.Minute, 5*time.Second).Should(gomega.Succeed(), "StatefulSet rollout timed out after 5 minutes")
+
+		// Final status report
+		fmt.Printf("\n=== Final Rollout Status ===\n")
+		pods, err := clientset.CoreV1().Pods("test-ns").List(context.TODO(), metav1.ListOptions{
+			LabelSelector: "app=app",
+		})
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		var readyFinal, runningNotReadyFinal, pendingFinal, terminatingFinal int
+		for _, pod := range pods.Items {
+			if pod.DeletionTimestamp != nil {
+				terminatingFinal++
+				continue
+			}
+
+			isReady := false
+			for _, cond := range pod.Status.Conditions {
+				if cond.Type == v1.PodReady && cond.Status == v1.ConditionTrue {
+					isReady = true
+					break
+				}
+			}
+
+			switch pod.Status.Phase {
+			case v1.PodPending:
+				pendingFinal++
+			case v1.PodRunning:
+				if isReady {
+					readyFinal++
+				} else {
+					runningNotReadyFinal++
+				}
+			}
+		}
+
+		fmt.Printf(
+			"  Total Pods: %d\n"+
+				"  Ready: %d | RunningNotReady: %d | Pending: %d | Terminating: %d\n\n",
+			len(pods.Items),
+			readyFinal, runningNotReadyFinal, pendingFinal, terminatingFinal,
+		)
 	})
 
 })
