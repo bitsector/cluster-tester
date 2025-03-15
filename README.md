@@ -78,15 +78,26 @@ File: pdb_deployment_test.go
 ### Deployment Affinity E2E test
 The test will deploy a zone-marker pod (placed a random zone by K8s), deploy an HPA, and a dependent-app deployment with a pod affinity 
 requirement (requiredDuringSchedulingIgnoredDuringExecution). The goal of the test is to trigger the deployment to create more pods and
- assert that all these pods satisfy the affinity requirement, relative to the zone-marker pods. The deployment's first pod will start running,
- simulate high CPU demand, this will trigger the HPA to create more of the deployment's pods. The test code will then verify that all 
- the pods are placed in the same zone as the zone-marker pod. The test will fail if and only if this condition is not met.  
+assert that all these pods satisfy the affinity requirement, relative to the zone-marker pod. The deployment's first pod will start running,
+simulate high CPU demand, this will trigger the HPA to create more of the deployment's pods. The test code will then verify that all 
+the pods are placed in the same zone as the zone-marker pod. The test will fail if and only if this condition is not met.  
 File: affinity_deployment_test.go
 
 ### Deployment Anti Affinity E2E test
-anti_affinity_deployment_test.go
+The test will deploy a zone-marker pod (placed a random zone by K8s), deploy an HPA, and a dependent-app deployment with a pod anti affinity 
+requirement (podAntiAffinity). The goal of the test is to trigger the deployment to create more pods and
+assert that all these pods satisfy the anti affinity requirement, relative to the zone-marker pod. The deployment's first pod will start running,
+simulate high CPU demand, this will trigger the HPA to create more of the deployment's pods. The test code will then verify that all 
+the pods are placed outside the zone of the zone-marker pod. The test will fail if and only if this condition is not met.  
+File: anti_affinity_deployment_test.go
+
 ### Deployment Rolling Update E2E test
-rolling_update_deployment_test.go
+The test will deploy a deployment with a RollingUpdate strategy. Once the deployment is up and running, the test code will initiate a rolling
+update (it will change the CPU of the container from 50m to 100m). During the update, the test code will sample repeatedly the state of the pods
+making sure they are in the confines of maxSurge: 1 and maxUnavailable: 25% values. If at no point the deployment pods' status violate the
+rolling update's strategy - the test will pass.
+File: rolling_update_deployment_test.go
+
 ### StatefulSet PDB E2E test
 pdb_sts_test.go
 ### StatefulSet Affinity E2E test
