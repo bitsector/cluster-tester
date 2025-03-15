@@ -173,3 +173,33 @@ Files:
 topology_constraint_statefulset_test.go
 topology_test_statefulset_yamls/hpa-trigger.yaml
 topology_test_statefulset_yamls/topology-statefulset.yaml
+
+### PDB Testing Observations:
+We have never observed a Pod Disruption Budget (PDB) being successfully applied and functioning as expected. Several attempts were made to demonstrate a functional PDB configuration without success (tested on GKE Kubernetes v1.31).
+
+**Attempt 1: Deployment/StatefulSet with Replica Guarantee**
+- Deployed a StatefulSet with 6 replicas
+- Applied PDB requiring minimum 5 available pods
+- Manually deleted all pods individually (`kubectl delete` and programmatic deletion)
+- **Expected**: PDB should maintain ≥5 available pods
+- **Actual**: All pods were deleted with temporary zero availability
+- _Implementation_: See Go code in this repository
+
+**Attempt 2: Rolling Update Without Availability Limits**
+- Configured deployment rolling update with no `maxUnavailable` restriction
+- Applied PDB requiring minimum 5 available pods during updates
+- **Expected**: PDB would prevent total pod unavailability
+- **Actual**: Immediate deletion of all old pods resulted in temporary zero availability
+- _Implementation_: See Go code in this repository
+
+**Attempt 3: HPA Scaling vs PDB Minimum**
+- Initial deployment: 3 replicas
+- HPA configured to scale down when CPU < 70%
+- PDB requiring ≥2 available pods
+- **Expected**: HPA would be blocked from scaling below 2 pods
+- **Actual**: HPA successfully scaled to 1 pod despite PDB
+- _Conditions_: Tested with idle pods (CPU utilization < 70%)
+
+**Attempt 4: External Reproducibility Test**
+- Cloned and executed [k8s-pdb-demo](https://github.com/phenixblue/k8s-pdb-demo)
+- **Outcome**: Observed same PDB failure patterns as our tests
