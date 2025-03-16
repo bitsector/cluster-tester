@@ -57,7 +57,20 @@ Then change the `image` element cronjob.yaml and debug-pod.yaml to `your-repo-na
 
 Then
 ```bash
+# apply the manifest
 kubectl apply -f cronjob.yaml
+
+# Optional: run the job manually
+kubectl create job e2e-cluster-tester-cronjob-manual-$(date +%s) \
+  --from=cronjob/e2e-cluster-tester-cronjob \
+  -n e2e-admin-ns
+
+# get the pod running the tests
+kubectl get pods -n e2e-admin-ns | tail -1 | cut -d' ' -f1
+
+# get the logs from the pod
+kubectl logs e2e-cluster-tester-cronjob-manual-1742108089-rdvm9 -n e2e-admin-ns --follow
+
 
 # or 
 
