@@ -66,10 +66,10 @@ kubectl create job e2e-cluster-tester-cronjob-manual-$(date +%s) \
   -n e2e-admin-ns
 
 # get the pod running the tests
-kubectl get pods -n e2e-admin-ns | tail -1 | cut -d' ' -f1
+E2E_POD_NAME=$(kubectl get pods -n e2e-admin-ns | tail -1 | cut -d' ' -f1) && echo "e2e pod name: $E2E_POD_NAME"
 
 # get the logs from the pod
-kubectl logs e2e-cluster-tester-cronjob-manual-1742108089-rdvm9 -n e2e-admin-ns --follow
+kubectl logs $E2E_POD_NAME -n e2e-admin-ns --follow
 
 
 # or 
@@ -82,9 +82,23 @@ one after the other.
 
 In the debug-pod you have to run them manually:
 ```bash
-kubectl exec -it cluster-tester-debug-pod -- /busybox/sh
+kubectl exec -it cluster-tester-debug-pod -n e2e-admin-ns -- /busybox/sh
 cd /app
-./cluster-tester # run all the tests
+./cluster-tester
+
+### Deployment tests
+./cluster-tester -test.v --ginkgo.focus "Deployment Topology E2E test"
+./cluster-tester -test.v --ginkgo.focus "Deployment Affinity Test Suite"
+./cluster-tester -test.v --ginkgo.focus "Deployment Anti Affinity Test Suite"
+./cluster-tester -test.v --ginkgo.focus "Deployment PDB E2E test"
+./cluster-tester -test.v --ginkgo.focus "Deployment Rolling Update E2E test"
+
+### StatefulSet tests
+./cluster-tester -test.v --ginkgo.focus "StatefulSet Affinity Test Suite"
+./cluster-tester -test.v --ginkgo.focus "StatefulSet Anti Affinity E2E test"
+./cluster-tester -test.v --ginkgo.focus "StatefulSet Topology E2E test"
+./cluster-tester -test.v --ginkgo.focus "StatefulSet PDB E2E test"
+./cluster-tester -test.v --ginkgo.focus "StatefulSet Rolling Update E2E test"
 ```
 
 ## Documentation - The test cases and how they work:

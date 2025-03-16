@@ -1,31 +1,31 @@
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: e2e-admin-ns
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: e2e-test-sa
-  namespace: default  # or your preferred namespace
+  namespace: e2e-admin-ns
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: e2e-test-role
 rules:
-  # Full access (*) on pods, pods/log, namespaces, and persistentvolumes
   - apiGroups: [""]
-    resources: ["pods", "pods/log", "namespaces", "persistentvolumes","services"]
+    resources: ["pods", "pods/log", "namespaces", "persistentvolumes", "services"]
     verbs: ["*"]
-  # Restricted to only "list" on nodes
   - apiGroups: [""]
     resources: ["nodes"]
-    verbs: ["list","get"]
-  # Full access (*) on deployments and statefulsets in the apps API group
+    verbs: ["list", "get"]
   - apiGroups: ["apps"]
     resources: ["deployments", "statefulsets"]
     verbs: ["*"]
-  # Full access (*) on poddisruptionbudgets in the policy API group
   - apiGroups: ["policy"]
     resources: ["poddisruptionbudgets"]
     verbs: ["*"]
-  # Full access (*) on horizontalpodautoscalers in the autoscaling API group
   - apiGroups: ["autoscaling"]
     resources: ["horizontalpodautoscalers"]
     verbs: ["*"]
@@ -37,7 +37,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: e2e-test-sa
-    namespace: default  # match SA namespace above
+    namespace: e2e-admin-ns
 roleRef:
   kind: ClusterRole
   name: e2e-test-role
@@ -47,11 +47,12 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: cluster-tester-debug-pod
+  namespace: e2e-admin-ns
 spec:
   serviceAccountName: e2e-test-sa  # Matches ServiceAccount below
   containers:
   - name: debug-container
-    image: antonbiz/cluster-tester-debug:1.8
+    image: antonbiz/cluster-tester-debug:1.10
     command: ["/busybox/sh", "-c", "sleep infinity & wait"]
     imagePullPolicy: Always
     securityContext:
