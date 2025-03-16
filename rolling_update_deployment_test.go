@@ -8,7 +8,6 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,10 +27,8 @@ func TestRollingUpdateDeployment(t *testing.T) {
 
 var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, func() {
 	var (
-		clientset      *kubernetes.Clientset
-		hpaMaxReplicas int32
-		depStartYAML   []byte
-		hpaYAML        []byte
+		clientset    *kubernetes.Clientset
+		depStartYAML []byte
 	)
 
 	ginkgo.BeforeAll(func() {
@@ -116,29 +113,12 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, fu
 
 	ginkgo.It("should apply Rolling update manifests", func() {
 		var err error
-		depStartYAML, hpaYAML, _, err = example.GetRollingUpdateDeploymentTestFiles()
+		depStartYAML, err = example.GetRollingUpdateDeploymentTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		// Parse HPA YAML to extract maxReplicas
-		type hpaSpec struct {
-			Spec struct {
-				MaxReplicas int32 `yaml:"maxReplicas"`
-			} `yaml:"spec"`
-		}
-
-		var hpaConfig hpaSpec
-		err = yaml.Unmarshal([]byte(hpaYAML), &hpaConfig)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		hpaMaxReplicas = hpaConfig.Spec.MaxReplicas
 
 		// Apply all the manifests
-		fmt.Printf("\n=== Applying Initial deployment manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
+		fmt.Printf("\n=== Applying Initial deployment manifest ===\n")
 		err = example.ApplyRawManifest(clientset, depStartYAML)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		// HPA will probably not be used here
-		fmt.Printf("\n=== Applying HPA manifest ===\n")
-		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Wait for Pods to Schedule ===\n")

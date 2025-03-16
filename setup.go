@@ -232,26 +232,14 @@ func GetPDBDeploymentTestFiles() ([]byte, []byte, []byte, error) {
 	return hpaContent, pdbContent, deploymentContent, nil
 }
 
-func GetRollingUpdateDeploymentTestFiles() ([]byte, []byte, []byte, error) {
+func GetRollingUpdateDeploymentTestFiles() ([]byte, error) {
 	startPath := filepath.Join("rolling_update_deployment_test_yamls", "deployment_start.yaml")
 	startContent, err := os.ReadFile(startPath)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("deployment start file error: %w (checked: %s)", err, startPath)
+		return nil, fmt.Errorf("deployment start file error: %w (checked: %s)", err, startPath)
 	}
 
-	hpaPath := filepath.Join("rolling_update_deployment_test_yamls", "hpa-trigger.yaml")
-	hpaContent, err := os.ReadFile(hpaPath)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("HPA trigger file error: %w (checked: %s)", err, hpaPath)
-	}
-
-	endPath := filepath.Join("rolling_update_deployment_test_yamls", "deployment_end.yaml")
-	endContent, err := os.ReadFile(endPath)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("deployment end file error: %w (checked: %s)", err, endPath)
-	}
-
-	return startContent, hpaContent, endContent, nil
+	return startContent, nil
 }
 
 func GetAffinityStatefulSetTestFiles() ([]byte, []byte, []byte, error) {
