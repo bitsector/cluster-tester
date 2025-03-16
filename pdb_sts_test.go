@@ -25,7 +25,6 @@ func TestStatefulSetPDB(t *testing.T) {
 
 var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, func() {
 	var clientset *kubernetes.Clientset
-	var hpaMaxReplicas int32
 	var minBDPAllowedPods int32
 
 	ginkgo.BeforeAll(func() {
@@ -109,21 +108,8 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, func() {
 	})
 
 	ginkgo.It("should apply PDB manifests", func() {
-		hpaYAML, pdbYAML, ssYAML, err := example.GetPDBStSTestFiles()
+		pdbYAML, ssYAML, err := example.GetPDBStSTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		// Parse HPA YAML to extract maxReplicas
-		type hpaSpec struct {
-			Spec struct {
-				MaxReplicas int32 `yaml:"maxReplicas"`
-			} `yaml:"spec"`
-		}
-
-		// Parse PDB YAML to extract minBDPAllowedPods
-		var hpaConfig hpaSpec
-		err = yaml.Unmarshal([]byte(hpaYAML), &hpaConfig)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		hpaMaxReplicas = hpaConfig.Spec.MaxReplicas
 
 		type pdbSpec struct {
 			Spec struct {
@@ -144,11 +130,6 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, func() {
 
 		fmt.Printf("\n=== Applying PDB manifest ===\n")
 		err = example.ApplyRawManifest(clientset, pdbYAML)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		// HPA is probably not needed here
-		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
-		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Wait for Pods to schedule ===\n")

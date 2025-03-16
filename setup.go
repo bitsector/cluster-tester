@@ -296,26 +296,20 @@ func GetStatefulSetTestFiles() ([]byte, []byte, error) {
 	return hpaContent, statefulsetContent, nil
 }
 
-func GetPDBStSTestFiles() ([]byte, []byte, []byte, error) {
-	hpaPath := filepath.Join("pdb_statefulset_test_yamls", "hpa-trigger.yaml")
-	hpaContent, err := os.ReadFile(hpaPath)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("HPA trigger file error: %w (checked: %s)", err, hpaPath)
-	}
-
+func GetPDBStSTestFiles() ([]byte, []byte, error) {
 	pdbPath := filepath.Join("pdb_statefulset_test_yamls", "pdb.yaml")
 	pdbContent, err := os.ReadFile(pdbPath)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("PDB file error: %w (checked: %s)", err, pdbPath)
+		return nil, nil, fmt.Errorf("PDB file error: %w (checked: %s)", err, pdbPath)
 	}
 
 	stsPath := filepath.Join("pdb_statefulset_test_yamls", "sts.yaml")
 	stsContent, err := os.ReadFile(stsPath)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("StatefulSet file error: %w (checked: %s)", err, stsPath)
+		return nil, nil, fmt.Errorf("StatefulSet file error: %w (checked: %s)", err, stsPath)
 	}
 
-	return hpaContent, pdbContent, stsContent, nil
+	return pdbContent, stsContent, nil
 }
 
 func GetRollingUpdateStatefulSetTestFiles() ([]byte, error) {
