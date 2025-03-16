@@ -324,18 +324,12 @@ func GetPDBStSTestFiles() ([]byte, []byte, []byte, error) {
 	return hpaContent, pdbContent, stsContent, nil
 }
 
-func GetRollingUpdateStatefulSetTestFiles() ([]byte, []byte, error) {
+func GetRollingUpdateStatefulSetTestFiles() ([]byte, error) {
 	startPath := filepath.Join("rolling_update_sts_yamls", "sts_start.yaml")
 	startContent, err := os.ReadFile(startPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("statefulset start file error: %w (checked: %s)", err, startPath)
+		return nil, fmt.Errorf("statefulset start file error: %w (checked: %s)", err, startPath)
 	}
 
-	endPath := filepath.Join("rolling_update_sts_yamls", "sts_end.yaml")
-	endContent, err := os.ReadFile(endPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("statefulset end file error: %w (checked: %s)", err, endPath)
-	}
-
-	return startContent, endContent, nil
+	return startContent, nil
 }

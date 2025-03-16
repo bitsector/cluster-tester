@@ -115,7 +115,7 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, f
 
 	ginkgo.It("should apply Rolling update manifests", func() {
 		var err error
-		ssStartYAML, _, err = example.GetRollingUpdateStatefulSetTestFiles()
+		ssStartYAML, err = example.GetRollingUpdateStatefulSetTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// Parse YAML to find expected replicas
