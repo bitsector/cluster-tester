@@ -135,8 +135,35 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, func() 
 		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Wait for HPA to be triggered ===\n")
-		time.Sleep(90 * time.Second)
+		fmt.Printf("\n=== Wait for HPA to trigger scaling ===\n")
+		deadline := time.Now().Add(2 * time.Minute)
+		pollInterval := 5 * time.Second
+
+		for {
+			// Get current pod count for StatefulSet
+			currentPods, err := clientset.CoreV1().Pods("test-ns").List(
+				context.TODO(),
+				metav1.ListOptions{
+					LabelSelector: "app=dependent-app",
+					FieldSelector: "status.phase=Running",
+				},
+			)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			runningCount := len(currentPods.Items)
+			fmt.Printf("Waiting for HPA, Current running pods: %d/%d\n", runningCount, hpaMaxReplicas)
+
+			if runningCount >= int(hpaMaxReplicas) {
+				fmt.Printf("Waiting for HPA, Reached required pod count of %d\n", hpaMaxReplicas)
+				break
+			}
+
+			if time.Now().After(deadline) {
+				ginkgo.Fail("Failed to wait for the HPA to trigger")
+			}
+
+			time.Sleep(pollInterval)
+		}
 	})
 
 	ginkgo.It("should ensure dependent pods are in same zone as zone-marker", func() {
