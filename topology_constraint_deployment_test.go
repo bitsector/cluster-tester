@@ -164,8 +164,35 @@ var _ = ginkgo.Describe("Deployment Topology Constraints E2E test", ginkgo.Order
 			)
 		}
 
-		fmt.Printf("\n=== Wait for HPA to trigger ===\n")
-		time.Sleep(150 * time.Second)
+		fmt.Printf("\n=== Wait for HPA to trigger scaling ===\n")
+		deadline := time.Now().Add(2 * time.Minute)
+		pollInterval := 5 * time.Second
+
+		for {
+			// Get current pod count for StatefulSet
+			currentPods, err := clientset.CoreV1().Pods("test-ns").List(
+				context.TODO(),
+				metav1.ListOptions{
+					LabelSelector: "app=myapp",
+					FieldSelector: "status.phase=Running",
+				},
+			)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			runningCount := len(currentPods.Items)
+			fmt.Printf("Waiting for HPA, Current running pods: %d/%d\n", runningCount, hpaMaxReplicas)
+
+			if runningCount >= int(hpaMaxReplicas) {
+				fmt.Printf("Waiting for HPA, Reached required pod count of %d\n", hpaMaxReplicas)
+				break
+			}
+
+			if time.Now().After(deadline) {
+				ginkgo.Fail("Failed to wait for the HPA to get to the maximum required pods")
+			}
+
+			time.Sleep(pollInterval)
+		}
 
 	})
 

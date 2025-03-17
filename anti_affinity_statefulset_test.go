@@ -159,7 +159,7 @@ var _ = ginkgo.Describe("StatefulSet Anti Affinity E2E test", ginkgo.Ordered, fu
 			}
 
 			if time.Now().After(deadline) {
-				ginkgo.Fail("Failed to wait for the HPA to trigger")
+				ginkgo.Fail("Failed to wait for the HPA to get to the maximum required pods")
 			}
 
 			time.Sleep(pollInterval)

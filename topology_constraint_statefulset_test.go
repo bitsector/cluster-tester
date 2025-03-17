@@ -188,7 +188,7 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 			}
 
 			if time.Now().After(deadline) {
-				ginkgo.Fail("Failed to wait for the HPA to trigger")
+				ginkgo.Fail("Failed to wait for the HPA to get to the maximum required pods")
 			}
 
 			time.Sleep(pollInterval)
