@@ -8,6 +8,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/rs/zerolog"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -29,6 +30,7 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 	var (
 		clientset    *kubernetes.Clientset
 		depStartYAML []byte
+		logger       zerolog.Logger
 	)
 
 	ginkgo.BeforeAll(func() {
@@ -37,6 +39,9 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		logger = example.GetLogger("DeploymentRollingUpdateTest")
+		logger.Info().Msg("Deployment Rolling Update Test zerolog init")
 
 		// Namespace setup
 		fmt.Printf("\n=== Ensuring test-ns exists ===\n")

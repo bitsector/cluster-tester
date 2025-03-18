@@ -9,6 +9,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/rs/zerolog"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,11 +24,15 @@ func TestConnectivity(t *testing.T) {
 
 var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var clientset *kubernetes.Clientset
+	var logger zerolog.Logger
 
 	ginkgo.BeforeAll(func() {
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		logger = example.GetLogger("SimpleConnectivityTest")
+		logger.Info().Msg("Simple Connectivity Test zerolog init")
 
 		// Namespace setup
 		fmt.Printf("\n=== Creating test-ns namespace ===\n")

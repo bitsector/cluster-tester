@@ -8,6 +8,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,6 +27,7 @@ func TestStatefulSetPDB(t *testing.T) {
 var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var clientset *kubernetes.Clientset
 	var minBDPAllowedPods int32
+	var logger zerolog.Logger
 
 	ginkgo.BeforeAll(func() {
 		fmt.Printf("\n=== Starting StatefulSet PDB E2E test ===\n")
@@ -33,6 +35,9 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		logger = example.GetLogger("StatefulSetPDBTest")
+		logger.Info().Msg("StatefulSet PDB Test zerolog init")
 
 		// Namespace setup
 		fmt.Printf("\n=== Ensuring test-ns exists ===\n")

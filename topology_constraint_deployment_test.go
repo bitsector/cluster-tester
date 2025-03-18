@@ -8,6 +8,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,7 +26,8 @@ func TestDeploymentTopology(t *testing.T) {
 
 var _ = ginkgo.Describe("Deployment Topology Constraints E2E test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var clientset *kubernetes.Clientset
-	var hpaMaxReplicas int32 // Add global variable declaration
+	var hpaMaxReplicas int32
+	var logger zerolog.Logger
 
 	ginkgo.BeforeAll(func() {
 		fmt.Printf("\n=== Starting Deployment Topology Constraints E2E test ===\n")
@@ -33,6 +35,9 @@ var _ = ginkgo.Describe("Deployment Topology Constraints E2E test", ginkgo.Order
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+		logger = example.GetLogger("DeploymentTopologyConstraitTest")
+		logger.Info().Msg("Deployment Topology Constrait Test zerolog init")
 
 		// Namespace setup
 		fmt.Printf("\n=== Ensuring test-ns exists ===\n")

@@ -1,13 +1,18 @@
 package example
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/rs/zerolog"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -15,8 +20,25 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-// Global variable for kubeconfig path
+var Logger zerolog.Logger
+var LogBuffer *bytes.Buffer
 var KubeconfigPath string
+
+func init() {
+	// Initialize the log buffer
+	LogBuffer = new(bytes.Buffer)
+
+	// Configure the logger to write logs to both the buffer and stdout
+	multiWriter := zerolog.MultiLevelWriter(LogBuffer, os.Stdout)
+	Logger = zerolog.New(multiWriter).
+		With().
+		Timestamp().
+		Logger()
+}
+
+func GetLogger(tag string) zerolog.Logger {
+	return Logger.With().Str("tag", tag).Logger()
+}
 
 func initKubeconfig() error {
 	// Try to load .env file
@@ -321,3 +343,78 @@ func GetRollingUpdateStatefulSetTestFiles() ([]byte, error) {
 
 	return startContent, nil
 }
+
+var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
+	// Create the temp directory if it doesn't exist
+	dir := "temp"
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		Logger.Error().Err(err).Msg("Failed to create directory")
+		return
+	}
+
+	// Generate a timestamp and construct the filename
+	timestamp := time.Now().Format("20060102-150405") // YYYYMMDD-HHMMSS format
+	filename := filepath.Join(dir, fmt.Sprintf("test_suite_log_%s.json", timestamp))
+
+	// Parse the log buffer to extract logs by tags
+	lines := bytes.Split(LogBuffer.Bytes(), []byte("\n"))
+	tagLogs := make(map[string]*bytes.Buffer)
+
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue // Skip empty lines
+		}
+
+		// Check if the line contains a "tag" field
+		tagStart := bytes.Index(line, []byte(`"tag":"`))
+		if tagStart != -1 {
+			tagStart += len(`"tag":"`)
+			tagEnd := bytes.Index(line[tagStart:], []byte(`"`))
+			if tagEnd != -1 {
+				tag := string(line[tagStart : tagStart+tagEnd])
+
+				// Add the line to the corresponding tag buffer
+				if _, exists := tagLogs[tag]; !exists {
+					tagLogs[tag] = new(bytes.Buffer)
+				}
+				tagLogs[tag].Write(line)
+				tagLogs[tag].Write([]byte("\n"))
+			}
+		}
+	}
+
+	// Print all unique tags
+	fmt.Println("\n=== Unique Tags Found in Logs ===")
+	for tag := range tagLogs {
+		fmt.Printf("- %s\n", tag)
+	}
+
+	// Create a JSON object to store all logs by tags
+	logsByTags := make(map[string]string)
+	for tag, buffer := range tagLogs {
+		logsByTags[tag] = buffer.String()
+	}
+
+	// Create the final JSON structure
+	finalJSON := map[string]interface{}{
+		"test_timestamp": timestamp,
+		"logs_by_tags":   logsByTags,
+	}
+
+	// Serialize the JSON object to a byte array
+	jsonData, err := json.MarshalIndent(finalJSON, "", "  ")
+	if err != nil {
+		Logger.Error().Err(err).Msg("Failed to serialize logs to JSON")
+		return
+	}
+
+	// Write the JSON data to the file
+	err = os.WriteFile(filename, jsonData, 0644)
+	if err != nil {
+		Logger.Error().Err(err).Msg("Failed to write test suite log file")
+	} else {
+		Logger.Info().Str("file", filename).Msg("Test suite log written successfully")
+	}
+
+	fmt.Printf("\n=== Logs have been written to %s ===\n", filename)
+})
