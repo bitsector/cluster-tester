@@ -23,7 +23,7 @@ func TestDeploymentAffinity(t *testing.T) {
 	ginkgo.RunSpecs(t, "Deployment Affinity Test Suite")
 }
 
-var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, func() {
+var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var clientset *kubernetes.Clientset
 	var hpaMaxReplicas int32
 

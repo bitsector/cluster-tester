@@ -27,7 +27,7 @@ func TestRollingUpdateStatefulSet(t *testing.T) {
 	ginkgo.RunSpecs(t, "StatefulSet Rolling Update Test Suite")
 }
 
-var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, func() {
+var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var (
 		clientset   *kubernetes.Clientset
 		ssStartYAML []byte

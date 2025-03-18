@@ -24,7 +24,7 @@ func TestDeploymentPDB(t *testing.T) {
 	ginkgo.RunSpecs(t, "Deployment PDB Test Suite")
 }
 
-var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, func() {
+var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var clientset *kubernetes.Clientset
 	var minBDPAllowedPods int32
 

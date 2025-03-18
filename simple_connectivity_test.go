@@ -21,7 +21,7 @@ func TestConnectivity(t *testing.T) {
 	ginkgo.RunSpecs(t, "Basic cluster connectivity test")
 }
 
-var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, func() {
+var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var clientset *kubernetes.Clientset
 
 	ginkgo.BeforeAll(func() {

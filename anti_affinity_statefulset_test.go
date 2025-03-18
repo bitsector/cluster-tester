@@ -23,7 +23,7 @@ func TestStatefulSetAntiAffinity(t *testing.T) {
 	ginkgo.RunSpecs(t, "StatefulSet Anti Affinity Test Suite")
 }
 
-var _ = ginkgo.Describe("StatefulSet Anti Affinity E2E test", ginkgo.Ordered, func() {
+var _ = ginkgo.Describe("StatefulSet Anti Affinity E2E test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var clientset *kubernetes.Clientset
 	var hpaMaxReplicas int32
 
