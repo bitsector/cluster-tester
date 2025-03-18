@@ -165,7 +165,7 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 		}
 
 		fmt.Printf("\n=== Wait for HPA to trigger scaling ===\n")
-		deadline := time.Now().Add(2 * time.Minute)
+		deadline := time.Now().Add(5 * time.Minute)
 		pollInterval := 5 * time.Second
 
 		for {

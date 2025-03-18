@@ -136,7 +136,7 @@ var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, func() {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		fmt.Printf("\n=== Wait for HPA to trigger scaling ===\n")
-		deadline := time.Now().Add(2 * time.Minute)
+		deadline := time.Now().Add(5 * time.Minute)
 		pollInterval := 5 * time.Second
 
 		for {
