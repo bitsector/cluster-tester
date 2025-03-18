@@ -61,6 +61,6 @@ spec:
           serviceAccountName: e2e-test-sa
           containers:
             - name: e2e-test-runner
-              image: antonbiz/cluster-tester-debug:1.14
+              image: antonbiz/cluster-tester-debug:1.15
               imagePullPolicy: Always
           restartPolicy: Never

@@ -119,7 +119,7 @@ Files:
 - topology_test_deployment_yamls/topology-dep.yaml
 
 ### Deployment PDB E2E test
-The test will deploy a PDB, an HPA and a Deployment. The 2 sub-tests will be attempted:
+The test will deploy a PDB and a Deployment. The 2 sub-tests will be attempted:
 1. The test code will attempt a rolling update on the deployment - since the deployment has no limitation on unavailable pods 
 (maxUnavailable and maxSurge 6) - all pods will be deleted. If the PDB works it will keep a minimum of 5 running pods. Otherwise the
 number of running pods will drop to 0 momentarily. The test will sample the number of pods during this rolling update period. If 
@@ -132,7 +132,6 @@ Note: As of this writing PDB tests always fail, we have not yet discovered a rep
 Files: 
 - pdb_deployment_test.go
 - pdb_deployment_test_yamls/deployment.yaml 
-- pdb_deployment_test_yamls/hpa-trigger.yaml 
 - pdb_deployment_test_yamls/pdb.yaml   
 
 ### Deployment Affinity E2E test
@@ -145,7 +144,7 @@ Files:
 - affinity_deployment_test.go
 - affinity_test_deployment_yamls/zone-marker.yaml
 - affinity_test_deployment_yamls/hpa-trigger.yaml
-- affinity_test_deployment_yamls/zone-marker.yaml 
+- affinity_test_deployment_yamls/affinity-dependent-app.yaml
  
 ### Deployment Anti Affinity E2E test
 The test will deploy a zone-marker pod (placed a random zone by K8s), deploy an HPA, and a dependent-app deployment with a pod anti affinity 
@@ -167,11 +166,9 @@ rolling update's strategy - the test will pass.
 Files: 
 - rolling_update_deployment_test.go
 - rolling_update_deployment_test_yamls/deployment_start.yaml 
-- rolling_update_deployment_test_yamls/deployment_end.yaml 
-- rolling_update_deployment_test_yamls/hpa-trigger.yaml
 
 ### StatefulSet PDB E2E test
-The test will deploy a PDB, an HPA and a stateful set. The 2 sub-tests will be attempted:
+The test will deploy a PDB and a stateful set. The 2 sub-tests will be attempted:
 1.The test code will attempt to delete all the stateful set's pods individually (i.e not deleting the stateful set itself). If the PDB 
 is working there still must be at least 5 running pods despite of the deletion. The test will sample the number of running pods right
 after the deletion. If at no point there were less than 5 running pods - the test will pass, otherwise the test will fail. 
@@ -181,7 +178,6 @@ Files:
 - pdb_sts_test.go
 - pdb_statefulset_test_yamls/pdb.yaml 
 - pdb_statefulset_test_yamls/sts.yaml
-- pdb_statefulset_test_yamls/hpa-trigger.yaml
 
 ### StatefulSet Affinity E2E test
 The test will deploy a zone-marker pod (placed a random zone by K8s), deploy an HPA, and a dependent-app stateful set with a pod affinity 
@@ -202,7 +198,6 @@ repeatedly the state of the pods making sure there is at most one unavailable po
 violate this condition - the test will pass.
 Files: 
 - rolling_update_sts_test.go
-- rolling_update_sts_yamls/sts_end.yaml
 - rolling_update_sts_yamls/sts_start.yaml
 
 ### StatefulSet Anti Affinity E2E test

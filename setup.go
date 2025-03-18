@@ -352,56 +352,43 @@ var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
 		return
 	}
 
-	// Generate a timestamp and construct the filename
-	timestamp := time.Now().Format("20060102-150405") // YYYYMMDD-HHMMSS format
-	filename := filepath.Join(dir, fmt.Sprintf("test_suite_log_%s.json", timestamp))
+	// Generate human-readable timestamp (US format: MM/DD/YYYY HH:MM:SS)
+	timestamp := time.Now().Format("01/02/2006 15:04:05")
+	filename := filepath.Join(dir, fmt.Sprintf("test_suite_log_%s.json",
+		time.Now().Format("20060102-150405"))) // Keep machine-friendly timestamp in filename
 
-	// Parse the log buffer to extract logs by tags
+	// Parse the log buffer to extract structured logs by tags
 	lines := bytes.Split(LogBuffer.Bytes(), []byte("\n"))
-	tagLogs := make(map[string]*bytes.Buffer)
+	logsByTags := make(map[string][]map[string]interface{})
 
 	for _, line := range lines {
 		if len(line) == 0 {
 			continue // Skip empty lines
 		}
 
-		// Check if the line contains a "tag" field
-		tagStart := bytes.Index(line, []byte(`"tag":"`))
-		if tagStart != -1 {
-			tagStart += len(`"tag":"`)
-			tagEnd := bytes.Index(line[tagStart:], []byte(`"`))
-			if tagEnd != -1 {
-				tag := string(line[tagStart : tagStart+tagEnd])
-
-				// Add the line to the corresponding tag buffer
-				if _, exists := tagLogs[tag]; !exists {
-					tagLogs[tag] = new(bytes.Buffer)
-				}
-				tagLogs[tag].Write(line)
-				tagLogs[tag].Write([]byte("\n"))
-			}
+		// Parse each log line into a structured JSON object
+		var logEntry map[string]interface{}
+		if err := json.Unmarshal(line, &logEntry); err != nil {
+			continue // Skip invalid JSON lines
 		}
-	}
 
-	// Print all unique tags
-	fmt.Println("\n=== Unique Tags Found in Logs ===")
-	for tag := range tagLogs {
-		fmt.Printf("- %s\n", tag)
-	}
+		// Extract tag if present
+		if tagValue, ok := logEntry["tag"].(string); ok {
+			// Remove raw JSON fields we don't need in final output
+			delete(logEntry, "tag")
+			delete(logEntry, "level")
 
-	// Create a JSON object to store all logs by tags
-	logsByTags := make(map[string]string)
-	for tag, buffer := range tagLogs {
-		logsByTags[tag] = buffer.String()
+			logsByTags[tagValue] = append(logsByTags[tagValue], logEntry)
+		}
 	}
 
 	// Create the final JSON structure
 	finalJSON := map[string]interface{}{
-		"test_timestamp": timestamp,
+		"test_timestamp": timestamp, // Human-readable US format: "03/18/2025 18:21:45"
 		"logs_by_tags":   logsByTags,
 	}
 
-	// Serialize the JSON object to a byte array
+	// Serialize the JSON object with proper indentation
 	jsonData, err := json.MarshalIndent(finalJSON, "", "  ")
 	if err != nil {
 		Logger.Error().Err(err).Msg("Failed to serialize logs to JSON")

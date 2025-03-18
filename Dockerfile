@@ -3,6 +3,10 @@ FROM golang:1.24.1-bullseye AS builder
 
 WORKDIR /app
 
+RUN mkdir -p /app/temp && \
+    chown -R 65534:65534 /app/temp && \
+    chmod 755 /app/temp
+
 # Copy go module files first (for caching)
 COPY go.mod .
 COPY go.sum .
@@ -63,6 +67,7 @@ FROM gcr.io/distroless/static-debian11:debug
 # Copy binary and manifests from builder stage explicitly
 COPY --from=builder /app/cluster-tester /app/
 COPY --from=builder /app/.env /app/
+COPY --from=builder --chown=65534:65534 /app/temp /app/temp
 
 # Explicitly copy each *test_yamls directory separately into container /app/ dir
 COPY --from=builder /app/affinity_test_deployment_yamls /app/affinity_test_deployment_yamls
@@ -81,6 +86,3 @@ WORKDIR /app
 USER 65534:65534
 
 ENTRYPOINT ["./cluster-tester", "-test.v"] 
-# ENTRYPOINT ["/app/cluster-tester", "-test.v", "-ginkgo.focus", "Deployment Affinity Test Suite"]
-# ENTRYPOINT ["/busybox/sh"]
-# ENTRYPOINT ["/busybox/sh", "-c", "sleep infinity & wait"]
