@@ -8,31 +8,47 @@ kind: ServiceAccount
 metadata:
   name: e2e-test-sa
   namespace: e2e-admin-ns
+imagePullSecrets:
+- name: registry-credentials  # Explicit secret reference
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: e2e-test-rolebinding
+  namespace: e2e-admin-ns  # Critical namespace specification
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: e2e-test-role
+subjects:
+- kind: ServiceAccount
+  name: e2e-test-sa
+  namespace: e2e-admin-ns
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: e2e-test-role
 rules:
-  - apiGroups: [""]
-    resources: ["pods", "pods/log", "namespaces", "persistentvolumes", "services"]
-    verbs: ["*"]
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["list", "get"]
-  - apiGroups: ["apps"]
-    resources: ["deployments", "statefulsets"]
-    verbs: ["*"]
-  - apiGroups: ["policy"]
-    resources: ["poddisruptionbudgets"]
-    verbs: ["*"]
-  - apiGroups: ["autoscaling"]
-    resources: ["horizontalpodautoscalers"]
-    verbs: ["*"]
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get", "list", "use"]
-    resourceNames: ["registry-credentials"]
+- apiGroups: [""]
+  resources: ["pods", "pods/log", "namespaces", "persistentvolumes", "services"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["list", "get"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets"]
+  verbs: ["*"]
+- apiGroups: ["policy"]
+  resources: ["poddisruptionbudgets"]
+  verbs: ["*"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "use"]
+  resourceNames: ["registry-credentials"]
 ---
 apiVersion: v1
 kind: Pod
@@ -68,5 +84,5 @@ spec:
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: true
       capabilities:
-        drop: ["ALL"]  # Only dropping capabilities now
+        drop: ["ALL"]
   restartPolicy: Never
