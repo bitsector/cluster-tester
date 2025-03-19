@@ -51,6 +51,8 @@ metadata:
   labels:
     wd_service: "cluster-tester"
 spec:
+  imagePullSecrets:
+  - name: registry-credentials
   serviceAccountName: e2e-test-sa
   securityContext:
     runAsNonRoot: true
