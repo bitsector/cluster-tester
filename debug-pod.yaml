@@ -48,15 +48,32 @@ kind: Pod
 metadata:
   name: cluster-tester-debug-pod
   namespace: e2e-admin-ns
+  labels:
+    wd_service: "cluster-tester"
 spec:
-  serviceAccountName: e2e-test-sa  # Matches ServiceAccount below
+  serviceAccountName: e2e-test-sa
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
   containers:
   - name: debug-container
     image: antonbiz/cluster-tester-debug:1.15
     command: ["/busybox/sh", "-c", "sleep infinity & wait"]
     imagePullPolicy: Always
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "250m"
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
     securityContext:
-      runAsUser: 65534
-      runAsGroup: 65534
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: ["ALL"]  # Only dropping capabilities now
   restartPolicy: Never
----
