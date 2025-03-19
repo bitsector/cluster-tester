@@ -294,14 +294,27 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 	})
 
 	ginkgo.It("should maintain minimum pod count during deletions", func() {
-		//Get current pod count
+		// Get current pod count with proper selectors
+		labelSelector := "app=app,component=my-unique-deployment"
+
 		pods, err := clientset.CoreV1().Pods("test-ns").List(
 			context.TODO(),
-			metav1.ListOptions{FieldSelector: "status.phase=Running"},
+			metav1.ListOptions{
+				LabelSelector: labelSelector,
+				FieldSelector: "status.phase=Running",
+			},
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		initialPods := len(pods.Items)
-		fmt.Printf("\n=== Initial running pods: %d ===\n", initialPods)
+
+		// Filter out terminating pods in code
+		var activePods []v1.Pod
+		for _, pod := range pods.Items {
+			if pod.DeletionTimestamp == nil {
+				activePods = append(activePods, pod)
+			}
+		}
+		initialPods := len(activePods)
+		fmt.Printf("\n=== Initial active pods: %d ===\n", initialPods)
 
 		// Verify minimum pod count
 		gomega.Expect(int32(initialPods)).To(
@@ -309,9 +322,9 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 			fmt.Sprintf("Initial pods (%d) below PDB minimum (%d)", initialPods, minBDPAllowedPods),
 		)
 
-		// Delete all pods
+		// Delete all active pods
 		fmt.Printf("\n=== Deleting all %d pods ===\n", initialPods)
-		for _, pod := range pods.Items {
+		for _, pod := range activePods {
 			err := clientset.CoreV1().Pods("test-ns").Delete(
 				context.TODO(),
 				pod.Name,
@@ -320,29 +333,41 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		}
 
-		// Immediate post-deletion checks with 5 attempts
-		fmt.Printf("\n=== Performing post-deletion validation (several attempts) ===\n")
-		numAttempts := 10
+		// Post-deletion checks with proper filtering
+		fmt.Printf("\n=== Performing post-deletion validation ===\n")
+		const numAttempts = 10
 		for attempt := 1; attempt <= numAttempts; attempt++ {
 			startPostCheck := time.Now()
+
 			postDeletePods, err := clientset.CoreV1().Pods("test-ns").List(
 				context.TODO(),
-				metav1.ListOptions{FieldSelector: "status.phase=Running"},
+				metav1.ListOptions{
+					LabelSelector: labelSelector,
+					FieldSelector: "status.phase=Running",
+				},
 			)
 			postCheckDuration := time.Since(startPostCheck)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			finalPods := len(postDeletePods.Items)
 
-			fmt.Printf("Attempt %d: Running Pods=%d, Sampling Duration=%v\n",
+			// Filter terminating pods
+			var currentActivePods []v1.Pod
+			for _, p := range postDeletePods.Items {
+				if p.DeletionTimestamp == nil {
+					currentActivePods = append(currentActivePods, p)
+				}
+			}
+			finalCount := len(currentActivePods)
+
+			fmt.Printf("Attempt %d: Active Pods=%d, Sampling Duration=%v\n",
 				attempt,
-				finalPods,
+				finalCount,
 				postCheckDuration.Round(time.Millisecond))
 
-			gomega.Expect(int32(finalPods)).To(
+			gomega.Expect(int32(finalCount)).To(
 				gomega.BeNumerically(">=", minBDPAllowedPods),
-				fmt.Sprintf("Attempt %d: Running Pod count (%d) violated PDB minimum (%d)",
+				fmt.Sprintf("Attempt %d: Pod count %d < PDB minimum %d",
 					attempt,
-					finalPods,
+					finalCount,
 					minBDPAllowedPods),
 			)
 		}
