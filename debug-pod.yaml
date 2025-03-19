@@ -29,19 +29,10 @@ rules:
   - apiGroups: ["autoscaling"]
     resources: ["horizontalpodautoscalers"]
     verbs: ["*"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: e2e-test-binding
-subjects:
-  - kind: ServiceAccount
-    name: e2e-test-sa
-    namespace: e2e-admin-ns
-roleRef:
-  kind: ClusterRole
-  name: e2e-test-role
-  apiGroup: rbac.authorization.k8s.io
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "use"]
+    resourceNames: ["registry-credentials"]
 ---
 apiVersion: v1
 kind: Pod
