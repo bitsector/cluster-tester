@@ -359,63 +359,78 @@ func GetRollingUpdateStatefulSetTestFiles() ([]byte, error) {
 }
 
 var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
-	logger := GetLogger("Final ReportAfterSuite")
-	dir := "/tmp"
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		Logger.Error().Err(err).Msg("Failed to create directory")
+	logger := GetLogger("FinalReportAfterSuite")
+	dir := "/app/temp"
+
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		logger.Error().Msgf("Error: Directory %s does not exist", dir)
 		return
 	}
 
-	// Generate human-readable timestamp (US format: MM/DD/YYYY HH:MM:SS)
-	timestamp := time.Now().Format("01/02/2006 15:04:05")
 	filename := filepath.Join(dir, fmt.Sprintf("test_suite_log_%s.json",
-		time.Now().Format("20060102-150405"))) // Keep machine-friendly timestamp in filename
+		time.Now().Format("20060102-150405")))
 
-	// Parse the log buffer to extract structured logs by tags
 	lines := bytes.Split(LogBuffer.Bytes(), []byte("\n"))
 	logsByTags := make(map[string][]map[string]interface{})
+	testOutcomes := make(map[string]string) // Track pass/fail per test
 
 	for _, line := range lines {
 		if len(line) == 0 {
-			continue // Skip empty lines
+			continue
 		}
 
-		// Parse each log line into a structured JSON object
 		var logEntry map[string]interface{}
 		if err := json.Unmarshal(line, &logEntry); err != nil {
-			continue // Skip invalid JSON lines
+			continue
 		}
 
-		// Extract tag if present
 		if tagValue, ok := logEntry["tag"].(string); ok {
-			// Remove raw JSON fields we don't need in final output
+			// Track test outcomes based on error presence
+			if _, exists := testOutcomes[tagValue]; !exists {
+				testOutcomes[tagValue] = "passed"
+			}
+			if level, ok := logEntry["level"].(string); ok && level == "error" {
+				testOutcomes[tagValue] = "failed"
+			}
+
 			delete(logEntry, "tag")
 			delete(logEntry, "level")
-
 			logsByTags[tagValue] = append(logsByTags[tagValue], logEntry)
 		}
 	}
 
-	// Create the final JSON structure
-	finalJSON := map[string]interface{}{
-		"test_timestamp": timestamp, // Human-readable US format: "03/18/2025 18:21:45"
-		"logs_by_tags":   logsByTags,
+	// Count statistics
+	totalTests := len(testOutcomes)
+	var succeededTests, failedTests int
+	for _, status := range testOutcomes {
+		if status == "passed" {
+			succeededTests++
+		} else {
+			failedTests++
+		}
 	}
 
-	// Serialize the JSON object with proper indentation
+	finalJSON := map[string]interface{}{
+		"test_timestamp": time.Now().Format("01/02/2006 15:04:05"),
+		"test_statistics": map[string]interface{}{
+			"total_tests":  totalTests,
+			"succeeded":    succeededTests,
+			"failed":       failedTests,
+			"success_rate": fmt.Sprintf("%.1f%%", float64(succeededTests)/float64(totalTests)*100),
+		},
+		"logs_by_tags":      logsByTags,
+		"detailed_outcomes": testOutcomes,
+	}
+
 	jsonData, err := json.MarshalIndent(finalJSON, "", "  ")
 	if err != nil {
-		Logger.Error().Err(err).Msg("Failed to serialize logs to JSON")
+		logger.Error().Err(err).Msg("Failed to serialize logs to JSON")
 		return
 	}
 
-	// Write the JSON data to the file
-	err = os.WriteFile(filename, jsonData, 0644)
-	if err != nil {
-		Logger.Error().Err(err).Msg("Failed to write test suite log file")
+	if err := os.WriteFile(filename, jsonData, 0644); err != nil {
+		logger.Error().Err(err).Msg("Failed to write test suite log file")
 	} else {
-		Logger.Info().Str("file", filename).Msg("Test suite log written successfully")
+		logger.Info().Str("file", filename).Msg("Test suite log written successfully")
 	}
-
-	logger.Info().Msgf("=== Logs have been written to %s ===", filename)
 })

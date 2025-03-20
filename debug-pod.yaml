@@ -64,7 +64,7 @@ spec:
       type: RuntimeDefault
   containers:
   - name: debug-container
-    image: antonbiz/cluster-tester-debug:1.17
+    image: antonbiz/cluster-tester-debug:1.18
     command: ["/busybox/sh", "-c", "sleep infinity & wait"]
     imagePullPolicy: Always
     resources:
@@ -79,4 +79,10 @@ spec:
       readOnlyRootFilesystem: true
       capabilities:
         drop: ["ALL"]
+    volumeMounts:
+    - name: temp-volume
+      mountPath: /app/temp
+  volumes:
+  - name: temp-volume
+    emptyDir: {}
   restartPolicy: Never
