@@ -25,11 +25,9 @@ var LogBuffer *bytes.Buffer
 var KubeconfigPath string
 
 func init() {
-	// Initialize the log buffer
 	LogBuffer = new(bytes.Buffer)
-
-	// Configure the logger to write logs to both the buffer and stdout
-	multiWriter := zerolog.MultiLevelWriter(LogBuffer, os.Stdout)
+	// Remove os.Stdout from MultiLevelWriter
+	multiWriter := zerolog.MultiLevelWriter(LogBuffer)
 	Logger = zerolog.New(multiWriter).
 		With().
 		Timestamp().
