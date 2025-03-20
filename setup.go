@@ -359,9 +359,8 @@ func GetRollingUpdateStatefulSetTestFiles() ([]byte, error) {
 }
 
 var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
-	// Create the temp directory if it doesn't exist
 	logger := GetLogger("Final ReportAfterSuite")
-	dir := "temp"
+	dir := "/tmp"
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		Logger.Error().Err(err).Msg("Failed to create directory")
 		return
