@@ -8,40 +8,47 @@ kind: ServiceAccount
 metadata:
   name: e2e-test-sa
   namespace: e2e-admin-ns
+imagePullSecrets:
+- name: registry-credentials  # Explicit secret reference
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: e2e-test-rolebinding
+  namespace: e2e-admin-ns  # Critical namespace specification
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: e2e-test-role
+subjects:
+- kind: ServiceAccount
+  name: e2e-test-sa
+  namespace: e2e-admin-ns
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: e2e-test-role
 rules:
-  - apiGroups: [""]
-    resources: ["pods", "pods/log", "namespaces", "persistentvolumes", "services"]
-    verbs: ["*"]
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["list", "get"]
-  - apiGroups: ["apps"]
-    resources: ["deployments", "statefulsets"]
-    verbs: ["*"]
-  - apiGroups: ["policy"]
-    resources: ["poddisruptionbudgets"]
-    verbs: ["*"]
-  - apiGroups: ["autoscaling"]
-    resources: ["horizontalpodautoscalers"]
-    verbs: ["*"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: e2e-test-binding
-subjects:
-  - kind: ServiceAccount
-    name: e2e-test-sa
-    namespace: e2e-admin-ns
-roleRef:
-  kind: ClusterRole
-  name: e2e-test-role
-  apiGroup: rbac.authorization.k8s.io
+- apiGroups: [""]
+  resources: ["pods", "pods/log", "namespaces", "persistentvolumes", "services"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["list", "get"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets"]
+  verbs: ["*"]
+- apiGroups: ["policy"]
+  resources: ["poddisruptionbudgets"]
+  verbs: ["*"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "use"]
+  resourceNames: ["registry-credentials"]
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -58,9 +65,30 @@ spec:
       backoffLimit: 0
       template:
         spec:
+          imagePullSecrets:
+          - name: registry-credentials
           serviceAccountName: e2e-test-sa
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
           containers:
-            - name: e2e-test-runner
-              image: antonbiz/cluster-tester-debug:1.15
-              imagePullPolicy: Always
+          - name: e2e-test-runner
+            image: antonbiz/cluster-tester-debug:1.15
+            imagePullPolicy: Always
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "250m"
+              limits:
+                memory: "128Mi"
+                cpu: "500m"
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: ["ALL"]
           restartPolicy: Never
