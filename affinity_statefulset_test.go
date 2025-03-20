@@ -30,7 +30,7 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, ginkgo.
 	var logger zerolog.Logger
 
 	ginkgo.BeforeAll(func() {
-		fmt.Printf("\n=== Starting StatefulSet Affinity E2E test ===\n")
+		logger.Info().Msgf("=== Starting StatefulSet Affinity E2E test ===")
 
 		var err error
 		clientset, err = example.GetClient()
@@ -40,7 +40,7 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, ginkgo.
 		logger.Info().Msg("StagefulSet Affinity Test zerolog init")
 
 		// Namespace setup
-		fmt.Printf("\n=== Ensuring test-ns exists ===\n")
+		logger.Info().Msgf("=== Ensuring test-ns exists ===")
 		_, err = clientset.CoreV1().Namespaces().Get(
 			context.TODO(),
 			"test-ns",
@@ -48,7 +48,7 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, ginkgo.
 		)
 
 		if apierrors.IsNotFound(err) {
-			fmt.Printf("Creating test-ns namespace\n")
+			logger.Info().Msgf("Creating test-ns namespace\n")
 			ns := &v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-ns",
@@ -70,7 +70,7 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, ginkgo.
 	})
 
 	ginkgo.AfterAll(func() {
-		fmt.Printf("\n=== Final namespace cleanup ===\n")
+		logger.Info().Msgf("=== Final namespace cleanup ===")
 		err := clientset.CoreV1().Namespaces().Delete(
 			context.TODO(),
 			"test-ns",
@@ -99,13 +99,13 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, ginkgo.
 			}
 
 			if time.Now().After(deadline) {
-				fmt.Printf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
+				logger.Info().Msgf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
 				break
 			}
 
 			// Handle transient errors
 			if err != nil {
-				fmt.Printf("Temporary error checking namespace: %v\n", err)
+				logger.Info().Msgf("Temporary error checking namespace: %v\n", err)
 			}
 
 			time.Sleep(interval)
@@ -130,19 +130,19 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, ginkgo.
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		hpaMaxReplicas = hpaConfig.Spec.MaxReplicas
 
-		fmt.Printf("\n=== Applying Zone Marker manifest ===\n")
+		logger.Info().Msgf("=== Applying Zone Marker manifest ===")
 		err = example.ApplyRawManifest(clientset, zoneYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Applying Affinity StatefulSet and Service manifest ===\n")
+		logger.Info().Msgf("=== Applying Affinity StatefulSet and Service manifest ===")
 		err = example.ApplyRawManifest(clientset, ssYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
+		logger.Info().Msgf("=== Applying HPA manifest (maxReplicas: %d) ===", hpaMaxReplicas)
 		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Wait for HPA to trigger scaling ===\n")
+		logger.Info().Msgf("=== Wait for HPA to trigger scaling ===")
 		deadline := time.Now().Add(5 * time.Minute)
 		pollInterval := 5 * time.Second
 
@@ -158,10 +158,10 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, ginkgo.
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			runningCount := len(currentPods.Items)
-			fmt.Printf("Waiting for HPA, Current running pods: %d/%d\n", runningCount, hpaMaxReplicas)
+			logger.Info().Msgf("Waiting for HPA, Current running pods: %d/%d\n", runningCount, hpaMaxReplicas)
 
 			if runningCount >= int(hpaMaxReplicas) {
-				fmt.Printf("Waiting for HPA, Reached required pod count of %d\n", hpaMaxReplicas)
+				logger.Info().Msgf("Waiting for HPA, Reached required pod count of %d\n", hpaMaxReplicas)
 				break
 			}
 
@@ -177,7 +177,7 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, ginkgo.
 		defer example.E2ePanicHandler()
 
 		// Get zone-marker pod details using correct label selector
-		fmt.Printf("\n=== Getting zone-marker pod details ===\n")
+		logger.Info().Msgf("=== Getting zone-marker pod details ===")
 		markerPods, err := clientset.CoreV1().Pods("test-ns").List(
 			context.TODO(),
 			metav1.ListOptions{
@@ -197,11 +197,11 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, ginkgo.
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		markerZone := markerNode.Labels["topology.kubernetes.io/zone"]
-		fmt.Printf("Zone-Marker Pod: %s\nNode: %s\nZone: %s\n",
+		logger.Info().Msgf("Zone-Marker Pod: %s\nNode: %s\nZone: %s\n",
 			markerPod.Name, markerPod.Spec.NodeName, markerZone)
 
 		// Get dependent-app pods details
-		fmt.Printf("\n=== Getting dependent-app pods details ===\n")
+		logger.Info().Msgf("=== Getting dependent-app pods details ===")
 		ssPods, err := clientset.CoreV1().Pods("test-ns").List(
 			context.TODO(),
 			metav1.ListOptions{
@@ -223,13 +223,13 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, ginkgo.
 
 			zone := node.Labels["topology.kubernetes.io/zone"]
 			depZones = append(depZones, zone)
-			fmt.Printf("Dependent Pod: %s\nNode: %s\nZone: %s\n",
+			logger.Info().Msgf("Dependent Pod: %s\nNode: %s\nZone: %s\n",
 				pod.Name, pod.Spec.NodeName, zone)
 		}
 
 		// Validate all zones match
-		fmt.Printf("\n=== Validating zone consistency ===\n")
-		fmt.Printf("Zone-Marker Zone: %s\nDependent Pod Zones: %v\n", markerZone, depZones)
+		logger.Info().Msgf("=== Validating zone consistency ===")
+		logger.Info().Msgf("Zone-Marker Zone: %s\nDependent Pod Zones: %v\n", markerZone, depZones)
 		gomega.Expect(depZones).To(gomega.HaveEach(markerZone),
 			"All dependent pods should be in the same zone as zone-marker")
 	})

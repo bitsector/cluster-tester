@@ -26,8 +26,23 @@ var KubeconfigPath string
 
 func init() {
 	LogBuffer = new(bytes.Buffer)
-	// Remove os.Stdout from MultiLevelWriter
-	multiWriter := zerolog.MultiLevelWriter(LogBuffer)
+	consoleWriter := zerolog.ConsoleWriter{
+		Out:        os.Stdout,
+		NoColor:    true,
+		TimeFormat: "2006-01-02 15:04:05",
+		PartsOrder: []string{
+			zerolog.TimestampFieldName,
+			zerolog.MessageFieldName,
+		},
+	}
+
+	// Simplify field formatting
+	consoleWriter.FormatFieldName = func(i interface{}) string { return "" }
+	consoleWriter.FormatFieldValue = func(i interface{}) string { return "" }
+
+	// Create a multi-writer to write to both stdout and LogBuffer
+	multiWriter := zerolog.MultiLevelWriter(consoleWriter, LogBuffer)
+
 	Logger = zerolog.New(multiWriter).
 		With().
 		Timestamp().
@@ -128,6 +143,7 @@ func getExternalClusterAPICreds() (*rest.Config, error) {
 
 func GetClient() (*kubernetes.Clientset, error) {
 	// Load .env to get ACCESS_MODE
+	logger := GetLogger("Setup")
 	err := godotenv.Load(".env")
 	if err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("error loading .env file: %w", err)
@@ -144,7 +160,7 @@ func GetClient() (*kubernetes.Clientset, error) {
 		if err != nil {
 			return nil, fmt.Errorf("config creation error: %w", err)
 		}
-		fmt.Printf("Running test with access mode KUBECONFIG")
+		logger.Info().Msgf("Running test with access mode KUBECONFIG")
 		return kubernetes.NewForConfig(config)
 
 	case "EXTERNAL_K8S_API":
@@ -152,7 +168,7 @@ func GetClient() (*kubernetes.Clientset, error) {
 		if err != nil {
 			return nil, fmt.Errorf("API credentials error: %w", err)
 		}
-		fmt.Printf("Running test with access mode EXTERNAL_K8S_API")
+		logger.Info().Msgf("Running test with access mode EXTERNAL_K8S_API")
 		return kubernetes.NewForConfig(config)
 
 	case "LOCAL_K8S_API":
@@ -160,11 +176,11 @@ func GetClient() (*kubernetes.Clientset, error) {
 		if err != nil {
 			return nil, fmt.Errorf("API credentials error: %w", err)
 		}
-		fmt.Printf("Running test with access mode LOCAL_K8S_API")
+		logger.Info().Msgf("Running test with access mode LOCAL_K8S_API")
 		return kubernetes.NewForConfig(config)
 
 	default:
-		fmt.Printf("Invalid .env ACCESS_MODE: %s. Must be KUBECONFIG, LOCAL_K8S_API or EXTERNAL_K8S_API\n", accessMode)
+		logger.Info().Msgf("Invalid .env ACCESS_MODE: %s. Must be KUBECONFIG, LOCAL_K8S_API or EXTERNAL_K8S_API\n", accessMode)
 		os.Exit(1)
 		return nil, fmt.Errorf(".env invalid access mode") // For compiler satisfaction
 	}
@@ -344,6 +360,7 @@ func GetRollingUpdateStatefulSetTestFiles() ([]byte, error) {
 
 var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
 	// Create the temp directory if it doesn't exist
+	logger := GetLogger("Final ReportAfterSuite")
 	dir := "temp"
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		Logger.Error().Err(err).Msg("Failed to create directory")
@@ -401,5 +418,5 @@ var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
 		Logger.Info().Str("file", filename).Msg("Test suite log written successfully")
 	}
 
-	fmt.Printf("\n=== Logs have been written to %s ===\n", filename)
+	logger.Info().Msgf("=== Logs have been written to %s ===", filename)
 })

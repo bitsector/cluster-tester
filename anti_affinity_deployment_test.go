@@ -30,7 +30,7 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 	var logger zerolog.Logger
 
 	ginkgo.BeforeAll(func() {
-		fmt.Printf("\n=== Starting Deployment Anti Affinity E2E test ===\n")
+		logger.Info().Msgf("=== Starting Deployment Anti Affinity E2E test ===")
 
 		var err error
 		clientset, err = example.GetClient()
@@ -40,7 +40,7 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 		logger.Info().Msg("Deployment Anti Affinity Test zerolog init")
 
 		// Namespace setup
-		fmt.Printf("\n=== Ensuring test-ns exists ===\n")
+		logger.Info().Msgf("=== Ensuring test-ns exists ===")
 		_, err = clientset.CoreV1().Namespaces().Get(
 			context.TODO(),
 			"test-ns",
@@ -48,7 +48,7 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 		)
 
 		if apierrors.IsNotFound(err) {
-			fmt.Printf("Creating test-ns namespace\n")
+			logger.Info().Msgf("Creating test-ns namespace\n")
 			ns := &v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-ns",
@@ -70,7 +70,7 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 	})
 
 	ginkgo.AfterAll(func() {
-		fmt.Printf("\n=== Final namespace cleanup ===\n")
+		logger.Info().Msgf("=== Final namespace cleanup ===")
 		err := clientset.CoreV1().Namespaces().Delete(
 			context.TODO(),
 			"test-ns",
@@ -99,13 +99,13 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 			}
 
 			if time.Now().After(deadline) {
-				fmt.Printf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
+				logger.Info().Msgf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
 				break
 			}
 
 			// Handle transient errors
 			if err != nil {
-				fmt.Printf("Temporary error checking namespace: %v\n", err)
+				logger.Info().Msgf("Temporary error checking namespace: %v\n", err)
 			}
 
 			time.Sleep(interval)
@@ -130,19 +130,19 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		hpaMaxReplicas = hpaConfig.Spec.MaxReplicas
 
-		fmt.Printf("\n=== Applying Zone Marker manifest ===\n")
+		logger.Info().Msgf("=== Applying Zone Marker manifest ===")
 		err = example.ApplyRawManifest(clientset, zoneYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Applying Anti Affinity Deployment manifest ===\n")
+		logger.Info().Msgf("=== Applying Anti Affinity Deployment manifest ===")
 		err = example.ApplyRawManifest(clientset, depYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
+		logger.Info().Msgf("=== Applying HPA manifest (maxReplicas: %d) ===", hpaMaxReplicas)
 		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Wait for HPA to trigger scaling ===\n")
+		logger.Info().Msgf("=== Wait for HPA to trigger scaling ===")
 		deadline := time.Now().Add(5 * time.Minute)
 		pollInterval := 5 * time.Second
 
@@ -158,10 +158,10 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			runningCount := len(currentPods.Items)
-			fmt.Printf("Waiting for HPA, Current running pods: %d/%d\n", runningCount, hpaMaxReplicas)
+			logger.Info().Msgf("Waiting for HPA, Current running pods: %d/%d\n", runningCount, hpaMaxReplicas)
 
 			if runningCount >= int(hpaMaxReplicas) {
-				fmt.Printf("Waiting for HPA, Reached required pod count of %d\n", hpaMaxReplicas)
+				logger.Info().Msgf("Waiting for HPA, Reached required pod count of %d\n", hpaMaxReplicas)
 				break
 			}
 
@@ -177,7 +177,7 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 		defer example.E2ePanicHandler()
 
 		// Get zone-marker pod information
-		fmt.Printf("\n=== Getting zone-marker pod details ===\n")
+		logger.Info().Msgf("=== Getting zone-marker pod details ===")
 		zoneMarkerPods, err := clientset.CoreV1().Pods("test-ns").List(
 			context.TODO(),
 			metav1.ListOptions{LabelSelector: "app=desired-zone-for-anti-affinity"},
@@ -200,13 +200,13 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 				"Zone label missing on node %s", zmPod.Spec.NodeName)
 
 			forbiddenZones = append(forbiddenZones, zone)
-			fmt.Printf("Zone-Marker Pod: %-20s Node: %-15s Zone: %s\n",
+			logger.Info().Msgf("Zone-Marker Pod: %-20s Node: %-15s Zone: %s\n",
 				zmPod.Name, zmPod.Spec.NodeName, zone)
 
 		}
 
 		// Get dependent-app pods
-		fmt.Printf("\n=== Getting dependent-app pods details ===\n")
+		logger.Info().Msgf("=== Getting dependent-app pods details ===")
 		dependentPods, err := clientset.CoreV1().Pods("test-ns").List(
 			context.TODO(),
 			metav1.ListOptions{LabelSelector: "app=dependent-app"},
@@ -215,7 +215,7 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 		gomega.Expect(dependentPods.Items).NotTo(gomega.BeEmpty(), "No dependent-app pods found")
 
 		// Verify zone separation
-		fmt.Printf("\n=== Validating zone constraints ===\n")
+		logger.Info().Msgf("=== Validating zone constraints ===")
 		var dependentAppZones []string
 		for _, depPod := range dependentPods.Items {
 			node, err := clientset.CoreV1().Nodes().Get(
@@ -229,7 +229,7 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 			gomega.Expect(podZone).NotTo(gomega.BeEmpty(),
 				"Zone label missing on node %s", depPod.Spec.NodeName)
 
-			fmt.Printf("Dependent Pod: %-20s Node: %-15s Zone: %s\n",
+			logger.Info().Msgf("Dependent Pod: %-20s Node: %-15s Zone: %s\n",
 				depPod.Name, depPod.Spec.NodeName, podZone)
 
 			dependentAppZones = append(dependentAppZones, podZone)
@@ -237,7 +237,7 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 			gomega.Expect(forbiddenZones).NotTo(gomega.ContainElement(podZone),
 				"Pod %s in prohibited zone %s", depPod.Name, podZone)
 		}
-		fmt.Printf("Zone-Marker Zones (forbiddened for scheduling): %v\nDependent Pod Zones: %v\n", forbiddenZones, dependentAppZones)
+		logger.Info().Msgf("Zone-Marker Zones (forbiddened for scheduling): %v\nDependent Pod Zones: %v\n", forbiddenZones, dependentAppZones)
 
 	})
 

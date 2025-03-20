@@ -32,25 +32,24 @@ var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkg
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		logger = example.GetLogger("SimpleConnectivityTest")
-		logger.Info().Msg("Simple Connectivity Test zerolog init")
 
 		// Namespace setup
-		fmt.Printf("\n=== Creating test-ns namespace ===\n")
+		logger.Info().Msgf("=== Creating test-ns namespace ===")
 		_, err = clientset.CoreV1().Namespaces().Create(
 			context.TODO(),
 			&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-ns"}},
 			metav1.CreateOptions{},
 		)
 		if apierrors.IsAlreadyExists(err) {
-			fmt.Printf("Namespace test-ns already exists\n")
+			logger.Info().Msgf("Namespace test-ns already exists\n")
 		} else {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			fmt.Printf("Namespace test-ns created successfully\n")
+			logger.Info().Msgf("Namespace test-ns created successfully\n")
 		}
 
 		// Register cleanup inside setup node
 		ginkgo.DeferCleanup(func() {
-			fmt.Printf("\n=== Final namespace cleanup ===\n")
+			logger.Info().Msgf("=== Final namespace cleanup ===")
 			err := clientset.CoreV1().Namespaces().Delete(
 				context.TODO(),
 				"test-ns",
@@ -75,17 +74,17 @@ var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkg
 				)
 
 				if apierrors.IsNotFound(err) {
-					fmt.Printf("Namespace test-ns successfully removed\n")
+					logger.Info().Msgf("Namespace test-ns successfully removed\n")
 					break
 				}
 
 				if time.Now().After(deadline) {
-					fmt.Printf("\nError: Namespace test-ns still exists after 1 minute\n")
+					logger.Info().Msgf("\nError: Namespace test-ns still exists after 1 minute\n")
 					break
 				}
 
 				if err != nil {
-					fmt.Printf("Transient error verifying deletion: %v\n", err)
+					logger.Info().Msgf("Transient error verifying deletion: %v\n", err)
 				}
 
 				time.Sleep(interval)
@@ -98,7 +97,7 @@ var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkg
 	ginkgo.It("should list cluster nodes", func() {
 		defer example.E2ePanicHandler()
 
-		fmt.Printf("\n=== Listing cluster nodes ===\n")
+		logger.Info().Msgf("=== Listing cluster nodes ===")
 		nodes, err := clientset.CoreV1().Nodes().List(
 			context.TODO(),
 			metav1.ListOptions{},
@@ -106,9 +105,9 @@ var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkg
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(nodes.Items).NotTo(gomega.BeEmpty())
 
-		fmt.Printf("Discovered %d nodes:\n", len(nodes.Items))
+		logger.Info().Msgf("Discovered %d nodes:\n", len(nodes.Items))
 		for i, node := range nodes.Items {
-			fmt.Printf("%d. %s\n", i+1, node.Name)
+			logger.Info().Msgf("%d. %s\n", i+1, node.Name)
 		}
 	})
 
@@ -121,7 +120,7 @@ var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkg
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Checking node readiness ===\n")
+		logger.Info().Msgf("=== Checking node readiness ===")
 		for _, node := range nodes.Items {
 			ready := false
 			for _, cond := range node.Status.Conditions {
@@ -134,20 +133,20 @@ var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkg
 			if ready {
 				status = "Ready"
 			}
-			fmt.Printf("Node %-30s: %s\n", node.Name, status)
+			logger.Info().Msgf("Node %-30s: %s\n", node.Name, status)
 		}
 	})
 
 	ginkgo.It("should have test namespace", func() {
 		defer example.E2ePanicHandler()
 
-		fmt.Printf("\n=== Verifying test namespace ===\n")
+		logger.Info().Msgf("=== Verifying test namespace ===")
 		_, err := clientset.CoreV1().Namespaces().Get(
 			context.TODO(),
 			"test-ns",
 			metav1.GetOptions{},
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		fmt.Printf("Namespace test-ns verified\n")
+		logger.Info().Msgf("Namespace test-ns verified\n")
 	})
 })

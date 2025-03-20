@@ -34,17 +34,16 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 	)
 
 	ginkgo.BeforeAll(func() {
-		fmt.Printf("\n=== Starting Deployment Rolling Update E2E test ===\n")
+		logger.Info().Msgf("=== Starting Deployment Rolling Update E2E test ===")
 
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		logger = example.GetLogger("DeploymentRollingUpdateTest")
-		logger.Info().Msg("Deployment Rolling Update Test zerolog init")
 
 		// Namespace setup
-		fmt.Printf("\n=== Ensuring test-ns exists ===\n")
+		logger.Info().Msgf("=== Ensuring test-ns exists ===")
 		_, err = clientset.CoreV1().Namespaces().Get(
 			context.TODO(),
 			"test-ns",
@@ -52,7 +51,7 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 		)
 
 		if apierrors.IsNotFound(err) {
-			fmt.Printf("Creating test-ns namespace\n")
+			logger.Info().Msgf("Creating test-ns namespace\n")
 			ns := &v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-ns",
@@ -74,7 +73,7 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 	})
 
 	ginkgo.AfterAll(func() {
-		fmt.Printf("\n=== Final namespace cleanup ===\n")
+		logger.Info().Msgf("=== Final namespace cleanup ===")
 		err := clientset.CoreV1().Namespaces().Delete(
 			context.TODO(),
 			"test-ns",
@@ -103,13 +102,13 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 			}
 
 			if time.Now().After(deadline) {
-				fmt.Printf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
+				logger.Info().Msgf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
 				break
 			}
 
 			// Handle transient errors
 			if err != nil {
-				fmt.Printf("Temporary error checking namespace: %v\n", err)
+				logger.Info().Msgf("Temporary error checking namespace: %v\n", err)
 			}
 
 			time.Sleep(interval)
@@ -124,18 +123,18 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// Apply all the manifests
-		fmt.Printf("\n=== Applying Initial deployment manifest ===\n")
+		logger.Info().Msgf("=== Applying Initial deployment manifest ===")
 		err = example.ApplyRawManifest(clientset, depStartYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Wait for Pods to Schedule ===\n")
+		logger.Info().Msgf("=== Wait for Pods to Schedule ===")
 		time.Sleep(30 * time.Second)
 	})
 
 	ginkgo.It("should perform rolling update with updated CPU requests", func() {
 		defer example.E2ePanicHandler()
 
-		fmt.Printf("\n=== Preparing rolling update with new CPU requests ===\n")
+		logger.Info().Msgf("=== Preparing rolling update with new CPU requests ===")
 		// Get existing deployment
 		currentDeployment, err := clientset.AppsV1().Deployments("test-ns").Get(
 			context.TODO(),
@@ -148,7 +147,7 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 		newDeployment := currentDeployment.DeepCopy()
 		newDeployment.Spec.Template.Spec.Containers[0].Resources.Requests[v1.ResourceCPU] = resource.MustParse("100m")
 
-		fmt.Printf("\n=== Triggering rolling update with new CPU requests ===\n")
+		logger.Info().Msgf("=== Triggering rolling update with new CPU requests ===")
 		_, err = clientset.AppsV1().Deployments("test-ns").Update(
 			context.TODO(),
 			newDeployment,
@@ -186,7 +185,7 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 		maxUnavailableValue, err := intstr.GetValueFromIntOrPercent(rollingUpdate.MaxUnavailable, int(replicas), true)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Deployment Strategy Configuration ===\n"+
+		logger.Info().Msgf("=== Deployment Strategy Configuration ==="+
 			"  Replicas: %d\n"+
 			"  MaxSurge: %s (%d pods)\n"+
 			"  MaxUnavailable: %s (%d pods)\n"+
@@ -222,19 +221,19 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 				return err
 			}
 
-			fmt.Printf("\n=== Sample checking rolling update status (attempt %d): ===\n\n", rolloutCheckNum)
+			logger.Info().Msgf("=== Sample checking rolling update status (attempt %d): ===\n", rolloutCheckNum)
 			var terminating, pending, runningNotReady, ready int
 			for _, pod := range pods.Items {
 				if pod.DeletionTimestamp != nil {
 					terminating++
-					fmt.Printf("[Terminating] %s\n", pod.Name)
+					logger.Info().Msgf("[Terminating] %s\n", pod.Name)
 					continue
 				}
 
 				switch pod.Status.Phase {
 				case v1.PodPending:
 					pending++
-					fmt.Printf("[Pending] %s\n", pod.Name)
+					logger.Info().Msgf("[Pending] %s\n", pod.Name)
 				case v1.PodRunning:
 					isReady := false
 					for _, cond := range pod.Status.Conditions {
@@ -245,10 +244,10 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 					}
 					if isReady {
 						ready++
-						fmt.Printf("[Ready] %s\n", pod.Name)
+						logger.Info().Msgf("[Ready] %s\n", pod.Name)
 					} else {
 						runningNotReady++
-						fmt.Printf("[RunningNotReady] %s\n", pod.Name)
+						logger.Info().Msgf("[RunningNotReady] %s\n", pod.Name)
 					}
 				}
 			}
@@ -269,7 +268,7 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 
 			rolloutCheckNum++
 
-			fmt.Printf("\nRollout Status:\n"+
+			logger.Info().Msgf("\nRollout Status:\n"+
 				"  Total Pods: %d\n"+
 				"  Surge Usage: %d/%s\n"+
 				"  Unavailable: %d/%s\n"+
@@ -326,7 +325,7 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 		surge := totalPods - int(*deployment.Spec.Replicas)
 		unavailable := terminating + pending + runningNotReady
 
-		fmt.Printf("\n=== Final Rollout Status ===\n"+
+		logger.Info().Msgf("=== Final Rollout Status ==="+
 			"  Total Pods: %d\n"+
 			"  Surge Usage: %d/%s\n"+
 			"  Unavailable: %d/%s\n"+

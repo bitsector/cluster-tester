@@ -31,17 +31,16 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 	var logger zerolog.Logger
 
 	ginkgo.BeforeAll(func() {
-		fmt.Printf("\n=== Starting Deployment PDB E2E test ===\n")
+		logger.Info().Msgf("=== Starting Deployment PDB E2E test ===")
 
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		logger = example.GetLogger("DeploymentPDBTest")
-		logger.Info().Msg("Deployment PDB Test zerolog init")
 
 		// Namespace setup
-		fmt.Printf("\n=== Ensuring test-ns exists ===\n")
+		logger.Info().Msgf("=== Ensuring test-ns exists ===")
 		_, err = clientset.CoreV1().Namespaces().Get(
 			context.TODO(),
 			"test-ns",
@@ -49,7 +48,7 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 		)
 
 		if apierrors.IsNotFound(err) {
-			fmt.Printf("Creating test-ns namespace\n")
+			logger.Info().Msgf("Creating test-ns namespace\n")
 			ns := &v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-ns",
@@ -71,7 +70,7 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 	})
 
 	ginkgo.AfterAll(func() {
-		fmt.Printf("\n=== Final namespace cleanup ===\n")
+		logger.Info().Msgf("=== Final namespace cleanup ===")
 		err := clientset.CoreV1().Namespaces().Delete(
 			context.TODO(),
 			"test-ns",
@@ -100,13 +99,13 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 			}
 
 			if time.Now().After(deadline) {
-				fmt.Printf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
+				logger.Info().Msgf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
 				break
 			}
 
 			// Handle transient errors
 			if err != nil {
-				fmt.Printf("Temporary error checking namespace: %v\n", err)
+				logger.Info().Msgf("Temporary error checking namespace: %v\n", err)
 			}
 
 			time.Sleep(interval)
@@ -129,18 +128,18 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 		err = yaml.Unmarshal([]byte(pdbYAML), &pdbConfig)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		minBDPAllowedPods = pdbConfig.Spec.MinAvailable
-		fmt.Printf("\n=== Minimum allowed pods from PDB: %d ===\n", minBDPAllowedPods)
+		logger.Info().Msgf("=== Minimum allowed pods from PDB: %d ===", minBDPAllowedPods)
 
 		// Apply all the manifests
-		fmt.Printf("\n=== Applying Deployment manifest ===\n")
+		logger.Info().Msgf("=== Applying Deployment manifest ===")
 		err = example.ApplyRawManifest(clientset, depYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Applying PDB manifest ===\n")
+		logger.Info().Msgf("=== Applying PDB manifest ===")
 		err = example.ApplyRawManifest(clientset, pdbYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Wait for Pods to schedule ===\n")
+		logger.Info().Msgf("=== Wait for Pods to schedule ===")
 		time.Sleep(30 * time.Second)
 	})
 
@@ -159,7 +158,7 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 		newDeployment := currentDeployment.DeepCopy()
 		newDeployment.Spec.Template.Spec.Containers[0].Resources.Requests[v1.ResourceCPU] = resource.MustParse("100m")
 
-		fmt.Printf("\n=== Triggering rolling update with new CPU requests ===\n")
+		logger.Info().Msgf("=== Triggering rolling update with new CPU requests ===")
 		_, err = clientset.AppsV1().Deployments("test-ns").Update(
 			context.TODO(),
 			newDeployment,
@@ -178,7 +177,7 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 		checkCounter := 1
 		rolloutComplete := false
 
-		fmt.Printf("\n=== Starting rolling update monitoring ===\n")
+		logger.Info().Msgf("=== Starting rolling update monitoring ===")
 		for attempt := 1; attempt <= maxAttempts; attempt++ {
 			// Get current deployment status
 			deployment, err := clientset.AppsV1().Deployments("test-ns").Get(
@@ -193,7 +192,7 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 				deployment.Status.Replicas == *deployment.Spec.Replicas &&
 				deployment.Status.AvailableReplicas == *deployment.Spec.Replicas {
 				rolloutComplete = true
-				fmt.Printf("\n=== Rollout completed successfully ===\n")
+				logger.Info().Msgf("=== Rollout completed successfully ===")
 				break
 			}
 
@@ -255,8 +254,8 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 			}
 
 			// Print detailed status
-			fmt.Printf("\n=== Check %d ===\n", checkCounter)
-			fmt.Printf("Rollout Status:\n"+
+			logger.Info().Msgf("=== Check %d ===", checkCounter)
+			logger.Info().Msgf("Rollout Status:\n"+
 				"  Total Pods: %d\n"+
 				"  Surge Usage: %d/%s\n"+
 				"  Unavailable: %d/%s\n"+
@@ -292,7 +291,7 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 				minBDPAllowedPods),
 		)
 
-		fmt.Printf("\n=== Rolling update completed with minimum %d running pods (PDB requires >=%d) ===\n",
+		logger.Info().Msgf("=== Rolling update completed with minimum %d running pods (PDB requires >=%d) ===",
 			minObservedPods,
 			minBDPAllowedPods)
 	})
@@ -320,7 +319,7 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 			}
 		}
 		initialPods := len(activePods)
-		fmt.Printf("\n=== Initial active pods: %d ===\n", initialPods)
+		logger.Info().Msgf("=== Initial active pods: %d ===", initialPods)
 
 		// Verify minimum pod count
 		gomega.Expect(int32(initialPods)).To(
@@ -329,7 +328,7 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 		)
 
 		// Delete all active pods
-		fmt.Printf("\n=== Deleting all %d pods ===\n", initialPods)
+		logger.Info().Msgf("=== Deleting all %d pods ===", initialPods)
 		for _, pod := range activePods {
 			err := clientset.CoreV1().Pods("test-ns").Delete(
 				context.TODO(),
@@ -340,7 +339,7 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 		}
 
 		// Post-deletion checks with proper filtering
-		fmt.Printf("\n=== Performing post-deletion validation ===\n")
+		logger.Info().Msgf("=== Performing post-deletion validation ===")
 		const numAttempts = 10
 		for attempt := 1; attempt <= numAttempts; attempt++ {
 			startPostCheck := time.Now()
@@ -364,7 +363,7 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 			}
 			finalCount := len(currentActivePods)
 
-			fmt.Printf("Attempt %d: Active Pods=%d, Sampling Duration=%v\n",
+			logger.Info().Msgf("Attempt %d: Active Pods=%d, Sampling Duration=%v\n",
 				attempt,
 				finalCount,
 				postCheckDuration.Round(time.Millisecond))
@@ -378,7 +377,7 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 			)
 		}
 
-		fmt.Printf("\n=== All post-deletion checks passed ===\n")
+		logger.Info().Msgf("=== All post-deletion checks passed ===")
 	})
 
 })

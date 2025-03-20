@@ -30,17 +30,16 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 	var logger zerolog.Logger
 
 	ginkgo.BeforeAll(func() {
-		fmt.Printf("\n=== Starting StatefulSet Topology Constraints E2E test ===\n")
+		logger.Info().Msgf("=== Starting StatefulSet Topology Constraints E2E test ===")
 
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		logger = example.GetLogger("StatefulSetTopologyConstraitTest")
-		logger.Info().Msg("StatefulSet Topology Constrait Test zerolog init")
 
 		// Namespace setup
-		fmt.Printf("\n=== Ensuring test-ns exists ===\n")
+		logger.Info().Msgf("=== Ensuring test-ns exists ===")
 		_, err = clientset.CoreV1().Namespaces().Get(
 			context.TODO(),
 			"test-ns",
@@ -48,7 +47,7 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 		)
 
 		if apierrors.IsNotFound(err) {
-			fmt.Printf("Creating test-ns namespace\n")
+			logger.Info().Msgf("Creating test-ns namespace\n")
 			ns := &v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-ns",
@@ -70,7 +69,7 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 	})
 
 	ginkgo.AfterAll(func() {
-		fmt.Printf("\n=== Final namespace cleanup ===\n")
+		logger.Info().Msgf("=== Final namespace cleanup ===")
 		err := clientset.CoreV1().Namespaces().Delete(
 			context.TODO(),
 			"test-ns",
@@ -99,13 +98,13 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 			}
 
 			if time.Now().After(deadline) {
-				fmt.Printf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
+				logger.Info().Msgf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
 				break
 			}
 
 			// Handle transient errors
 			if err != nil {
-				fmt.Printf("Temporary error checking namespace: %v\n", err)
+				logger.Info().Msgf("Temporary error checking namespace: %v\n", err)
 			}
 
 			time.Sleep(interval)
@@ -129,11 +128,11 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		hpaMaxReplicas = hpaConfig.Spec.MaxReplicas
 
-		fmt.Printf("\n=== Applying StatefulSet and Service manifest ===\n")
+		logger.Info().Msgf("=== Applying StatefulSet and Service manifest ===")
 		err = example.ApplyRawManifest(clientset, ssYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Applying HPA manifest (maxReplicas: %d) ===\n", hpaMaxReplicas)
+		logger.Info().Msgf("=== Applying HPA manifest (maxReplicas: %d) ===", hpaMaxReplicas)
 		err = example.ApplyRawManifest(clientset, hpaYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -143,7 +142,7 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 	ginkgo.It("should verify topology resources exist", func() {
 		defer example.E2ePanicHandler()
 
-		fmt.Printf("\n=== Verifying cluster resources ===\n")
+		logger.Info().Msgf("=== Verifying cluster resources ===")
 
 		// Check StatefulSet exists
 		statefulSets, err := clientset.AppsV1().StatefulSets("test-ns").List(
@@ -152,9 +151,9 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(statefulSets.Items).NotTo(gomega.BeEmpty())
-		fmt.Printf("Found %d statefulSets in namespace:\n", len(statefulSets.Items))
+		logger.Info().Msgf("Found %d statefulSets in namespace:\n", len(statefulSets.Items))
 		for _, d := range statefulSets.Items {
-			fmt.Printf("- %s (Replicas: %d)\n", d.Name, *d.Spec.Replicas)
+			logger.Info().Msgf("- %s (Replicas: %d)\n", d.Name, *d.Spec.Replicas)
 		}
 
 		// Check HPA exists
@@ -164,16 +163,16 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(hpas.Items).NotTo(gomega.BeEmpty())
-		fmt.Printf("Found %d HPAs in namespace:\n", len(hpas.Items))
+		logger.Info().Msgf("Found %d HPAs in namespace:\n", len(hpas.Items))
 		for _, h := range hpas.Items {
-			fmt.Printf("- %s (Min: %d, Max: %d)\n",
+			logger.Info().Msgf("- %s (Min: %d, Max: %d)\n",
 				h.Name,
 				*h.Spec.MinReplicas,
 				h.Spec.MaxReplicas,
 			)
 		}
 
-		fmt.Printf("\n=== Wait for HPA to trigger scaling ===\n")
+		logger.Info().Msgf("=== Wait for HPA to trigger scaling ===")
 		deadline := time.Now().Add(5 * time.Minute)
 		pollInterval := 5 * time.Second
 
@@ -189,10 +188,10 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			runningCount := len(currentPods.Items)
-			fmt.Printf("Waiting for HPA, Current running pods: %d/%d\n", runningCount, hpaMaxReplicas)
+			logger.Info().Msgf("Waiting for HPA, Current running pods: %d/%d\n", runningCount, hpaMaxReplicas)
 
 			if runningCount >= int(hpaMaxReplicas) {
-				fmt.Printf("Waiting for HPA, Reached required pod count of %d\n", hpaMaxReplicas)
+				logger.Info().Msgf("Waiting for HPA, Reached required pod count of %d\n", hpaMaxReplicas)
 				break
 			}
 
@@ -208,7 +207,7 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 	ginkgo.It("should verify topology constraints", func() {
 		defer example.E2ePanicHandler()
 
-		fmt.Printf("\n=== Verifying pod scale count and distribution ===\n")
+		logger.Info().Msgf("=== Verifying pod scale count and distribution ===")
 
 		statefulSet, err := clientset.AppsV1().StatefulSets("test-ns").Get(
 			context.TODO(),
@@ -247,11 +246,11 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 
 		// Collect zone distribution
 		zoneDistribution := make(map[string]int)
-		fmt.Printf("\nPod-to-Zone Distribution:\n")
+		logger.Info().Msgf("\nPod-to-Zone Distribution:\n")
 		for _, pod := range pods.Items {
 			zone := nodeToZone[pod.Spec.NodeName]
 			zoneDistribution[zone]++
-			fmt.Printf("- Pod %-40s → Zone: %s\n", pod.Name, zone)
+			logger.Info().Msgf("- Pod %-40s → Zone: %s\n", pod.Name, zone)
 		}
 
 		// Calculate max skew between zones
@@ -267,17 +266,17 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 		}
 		skew := maxCount - minCount
 
-		fmt.Printf("\nZone Distribution Analysis:\n")
-		fmt.Printf("Total Pods: %d\n", len(pods.Items))
-		fmt.Printf("Zones Used: %d\n", len(zoneDistribution))
-		fmt.Printf("Max Pods per Zone: %d\n", maxCount)
-		fmt.Printf("Min Pods per Zone: %d\n", minCount)
-		fmt.Printf("Calculated Skew: %d\n", skew)
+		logger.Info().Msgf("\nZone Distribution Analysis:\n")
+		logger.Info().Msgf("Total Pods: %d\n", len(pods.Items))
+		logger.Info().Msgf("Zones Used: %d\n", len(zoneDistribution))
+		logger.Info().Msgf("Max Pods per Zone: %d\n", maxCount)
+		logger.Info().Msgf("Min Pods per Zone: %d\n", minCount)
+		logger.Info().Msgf("Calculated Skew: %d\n", skew)
 
 		gomega.Expect(skew).To(gomega.BeNumerically("<=", 1),
 			fmt.Sprintf("Topology skew violation: Max zone skew %d exceeds allowed maximum of 1", skew))
 
-		fmt.Printf("\nZone topology validation successful - max skew of %d within threshold\n", skew)
+		logger.Info().Msgf("\nZone topology validation successful - max skew of %d within threshold\n", skew)
 	})
 
 })

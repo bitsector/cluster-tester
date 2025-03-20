@@ -30,17 +30,16 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 	var logger zerolog.Logger
 
 	ginkgo.BeforeAll(func() {
-		fmt.Printf("\n=== Starting StatefulSet PDB E2E test ===\n")
+		logger.Info().Msgf("=== Starting StatefulSet PDB E2E test ===")
 
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		logger = example.GetLogger("StatefulSetPDBTest")
-		logger.Info().Msg("StatefulSet PDB Test zerolog init")
 
 		// Namespace setup
-		fmt.Printf("\n=== Ensuring test-ns exists ===\n")
+		logger.Info().Msgf("=== Ensuring test-ns exists ===")
 		_, err = clientset.CoreV1().Namespaces().Get(
 			context.TODO(),
 			"test-ns",
@@ -48,7 +47,7 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 		)
 
 		if apierrors.IsNotFound(err) {
-			fmt.Printf("Creating test-ns namespace\n")
+			logger.Info().Msgf("Creating test-ns namespace\n")
 			ns := &v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-ns",
@@ -70,7 +69,7 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 	})
 
 	ginkgo.AfterAll(func() {
-		fmt.Printf("\n=== Final namespace cleanup ===\n")
+		logger.Info().Msgf("=== Final namespace cleanup ===")
 		err := clientset.CoreV1().Namespaces().Delete(
 			context.TODO(),
 			"test-ns",
@@ -99,13 +98,13 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 			}
 
 			if time.Now().After(deadline) {
-				fmt.Printf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
+				logger.Info().Msgf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
 				break
 			}
 
 			// Handle transient errors
 			if err != nil {
-				fmt.Printf("Temporary error checking namespace: %v\n", err)
+				logger.Info().Msgf("Temporary error checking namespace: %v\n", err)
 			}
 
 			time.Sleep(interval)
@@ -128,18 +127,18 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 		err = yaml.Unmarshal([]byte(pdbYAML), &pdbConfig)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		minBDPAllowedPods = pdbConfig.Spec.MinAvailable
-		fmt.Printf("\n=== Minimum allowed pods from PDB: %d ===\n", minBDPAllowedPods)
+		logger.Info().Msgf("=== Minimum allowed pods from PDB: %d ===", minBDPAllowedPods)
 
 		// Apply all the manifests
-		fmt.Printf("\n=== Applying StatefulSet and Service manifest ===\n")
+		logger.Info().Msgf("=== Applying StatefulSet and Service manifest ===")
 		err = example.ApplyRawManifest(clientset, ssYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Applying PDB manifest ===\n")
+		logger.Info().Msgf("=== Applying PDB manifest ===")
 		err = example.ApplyRawManifest(clientset, pdbYAML)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		fmt.Printf("\n=== Wait for Pods to schedule ===\n")
+		logger.Info().Msgf("=== Wait for Pods to schedule ===")
 		time.Sleep(30 * time.Second)
 	})
 
@@ -154,7 +153,7 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		initialPods := len(pods.Items)
-		fmt.Printf("\n=== Initial running pods: %d ===\n", initialPods)
+		logger.Info().Msgf("=== Initial running pods: %d ===", initialPods)
 
 		// Verify minimum pod count
 		gomega.Expect(int32(initialPods)).To(
@@ -163,7 +162,7 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 		)
 
 		// Delete all pods
-		fmt.Printf("\n=== Deleting all %d pods ===\n", initialPods)
+		logger.Info().Msgf("=== Deleting all %d pods ===", initialPods)
 		for _, pod := range pods.Items {
 			err := clientset.CoreV1().Pods("test-ns").Delete(
 				context.TODO(),
@@ -174,7 +173,7 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 		}
 
 		// Immediate post-deletion checks with 5 attempts
-		fmt.Printf("\n=== Performing post-deletion validation (several attempts) ===\n")
+		logger.Info().Msgf("=== Performing post-deletion validation (several attempts) ===")
 		numAttempts := 10
 		for attempt := 1; attempt <= numAttempts; attempt++ {
 			startPostCheck := time.Now()
@@ -186,7 +185,7 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			finalPods := len(postDeletePods.Items)
 
-			fmt.Printf("Attempt %d: Running Pods=%d, Sampling Duration=%v\n",
+			logger.Info().Msgf("Attempt %d: Running Pods=%d, Sampling Duration=%v\n",
 				attempt,
 				finalPods,
 				postCheckDuration.Round(time.Millisecond))
@@ -200,7 +199,7 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 			)
 		}
 
-		fmt.Printf("\n=== All post-deletion checks passed ===\n")
+		logger.Info().Msgf("=== All post-deletion checks passed ===")
 	})
 
 })
