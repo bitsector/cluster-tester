@@ -49,7 +49,7 @@ go test -v ./rolling_update_sts_test.go -ginkgo.focus "StatefulSet Rolling Updat
 ## Cronjob and debug-pod - How to run it inside a K8s cluster:
 
 ```bash
-docker build -t your-repo-name/image-name:tag .
+docker build --platform=linux/amd64 --no-cache -t your-repo-name/image-name:tag .
 
 docker push your-repo-name/image-name:tag
 ```
@@ -58,6 +58,7 @@ Then change the `image` element cronjob.yaml and debug-pod.yaml to `your-repo-na
 Then
 ```bash
 # apply the manifest
+kubectl create ns e2e-admin-ns
 kubectl apply -f cronjob.yaml
 
 # Optional: run the job manually
@@ -73,7 +74,7 @@ kubectl logs $E2E_POD_NAME -n e2e-admin-ns --follow
 
 
 # or 
-
+kubectl create ns e2e-admin-ns
 kubectl apply -f debug-pod.yaml
 
 ```
