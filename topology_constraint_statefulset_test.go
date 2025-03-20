@@ -113,6 +113,8 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 	})
 
 	ginkgo.It("should apply topology manifests", func() {
+		defer example.E2ePanicHandler()
+
 		hpaYAML, ssYAML, err := example.GetStatefulSetTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -139,6 +141,8 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 	})
 
 	ginkgo.It("should verify topology resources exist", func() {
+		defer example.E2ePanicHandler()
+
 		fmt.Printf("\n=== Verifying cluster resources ===\n")
 
 		// Check StatefulSet exists
@@ -202,6 +206,8 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 	})
 
 	ginkgo.It("should verify topology constraints", func() {
+		defer example.E2ePanicHandler()
+
 		fmt.Printf("\n=== Verifying pod scale count and distribution ===\n")
 
 		statefulSet, err := clientset.AppsV1().StatefulSets("test-ns").Get(

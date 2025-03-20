@@ -119,6 +119,8 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, g
 	})
 
 	ginkgo.It("should apply Rolling update manifests", func() {
+		defer example.E2ePanicHandler()
+
 		var err error
 		ssStartYAML, err = example.GetRollingUpdateStatefulSetTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -178,6 +180,8 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, g
 	})
 
 	ginkgo.It("should perform rolling update with updated CPU requests for StatefulSet", func() {
+		defer example.E2ePanicHandler()
+
 		fmt.Printf("\n=== Preparing StatefulSet rolling update with new CPU requests ===\n")
 
 		// Get existing StatefulSet

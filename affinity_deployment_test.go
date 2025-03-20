@@ -113,6 +113,8 @@ var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, ginkgo.L
 	})
 
 	ginkgo.It("should apply affinity manifests", func() {
+		defer example.E2ePanicHandler()
+
 		hpaYAML, zoneYAML, depYAML, err := example.GetAffinityDeploymentTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -172,6 +174,8 @@ var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, ginkgo.L
 	})
 
 	ginkgo.It("should ensure dependent pods are in same zone as zone-marker", func() {
+		defer example.E2ePanicHandler()
+
 		// Get zone-marker pod details using correct label selector
 		fmt.Printf("\n=== Getting zone-marker pod details ===\n")
 		markerPods, err := clientset.CoreV1().Pods("test-ns").List(

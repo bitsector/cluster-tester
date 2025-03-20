@@ -117,6 +117,8 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 	})
 
 	ginkgo.It("should apply Rolling update manifests", func() {
+		defer example.E2ePanicHandler()
+
 		var err error
 		depStartYAML, err = example.GetRollingUpdateDeploymentTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -131,8 +133,9 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 	})
 
 	ginkgo.It("should perform rolling update with updated CPU requests", func() {
-		fmt.Printf("\n=== Preparing rolling update with new CPU requests ===\n")
+		defer example.E2ePanicHandler()
 
+		fmt.Printf("\n=== Preparing rolling update with new CPU requests ===\n")
 		// Get existing deployment
 		currentDeployment, err := clientset.AppsV1().Deployments("test-ns").Get(
 			context.TODO(),

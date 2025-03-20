@@ -114,6 +114,8 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 	})
 
 	ginkgo.It("should apply PDB manifests", func() {
+		defer example.E2ePanicHandler()
+
 		pdbYAML, depYAML, err := example.GetPDBDeploymentTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -143,6 +145,8 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 	})
 
 	ginkgo.It("should maintain minimum pods during rolling update", func() {
+		defer example.E2ePanicHandler()
+
 		// Get existing deployment
 		currentDeployment, err := clientset.AppsV1().Deployments("test-ns").Get(
 			context.TODO(),
@@ -294,6 +298,8 @@ var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label(
 	})
 
 	ginkgo.It("should maintain minimum pod count during deletions", func() {
+		defer example.E2ePanicHandler()
+
 		// Get current pod count with proper selectors
 		labelSelector := "app=app,component=my-unique-deployment"
 

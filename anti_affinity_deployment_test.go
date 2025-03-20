@@ -113,6 +113,8 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 	})
 
 	ginkgo.It("should apply anti affinity manifests", func() {
+		defer example.E2ePanicHandler()
+
 		hpaYAML, zoneYAML, depYAML, err := example.GetAntiAffinityTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -172,6 +174,7 @@ var _ = ginkgo.Describe("Deployment Anti Affinity E2E test", ginkgo.Ordered, gin
 	})
 
 	ginkgo.It("should enforce zone separation between zone-marker and dependent-app", func() {
+		defer example.E2ePanicHandler()
 
 		// Get zone-marker pod information
 		fmt.Printf("\n=== Getting zone-marker pod details ===\n")
