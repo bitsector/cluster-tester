@@ -396,10 +396,10 @@ func contains(slice []string, str string) bool {
 	return false
 }
 
-var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
+var _ = ginkgo.ReportAfterSuite("Test Suite Summary", func(report ginkgo.Report) {
 	logger := GetLogger("FinalReportAfterSuite")
-	dir := "./temp"
 
+	dir := "./temp"
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		logger.Error().Msgf("Error: Directory %s does not exist", dir)
 		return
@@ -410,6 +410,11 @@ var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
 
 	lines := bytes.Split(LogBuffer.Bytes(), []byte("\n"))
 	logsByTags := make(map[string][]map[string]interface{})
+	failingTests := []string{}
+	succeedingTests := []string{}
+	allowedToFailTests := []string{}
+	failedButNotAllowedToFail := []string{}
+	allTags := make(map[string]bool)
 
 	for _, line := range lines {
 		if len(line) == 0 {
@@ -422,18 +427,43 @@ var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
 		}
 
 		if tagValue, ok := logEntry["tag"].(string); ok && tagValue != "Setup" {
+			allTags[tagValue] = true
+
+			if msg, ok := logEntry["message"].(string); ok && strings.Contains(msg, "TEST_FAILED") {
+				failingTests = append(failingTests, tagValue)
+				if contains(AllowedToFailTags, tagValue) {
+					allowedToFailTests = append(allowedToFailTests, tagValue)
+				} else {
+					failedButNotAllowedToFail = append(failedButNotAllowedToFail, tagValue)
+				}
+			}
+
 			delete(logEntry, "tag")
 			delete(logEntry, "level")
 			logsByTags[tagValue] = append(logsByTags[tagValue], logEntry)
 		}
 	}
 
-	finalJSON := map[string]interface{}{
-		"test_timestamp": time.Now().Format("01/02/2006 15:04:05"),
-		"logs_by_tags":   logsByTags,
+	for tag := range allTags {
+		if !contains(failingTests, tag) {
+			succeedingTests = append(succeedingTests, tag)
+		}
 	}
 
-	jsonData, err := json.MarshalIndent(finalJSON, "", "  ")
+	totalTests := len(failingTests) + len(succeedingTests)
+	successRatio := float64(len(succeedingTests)) / float64(totalTests) * 100
+
+	finalJSON := map[string]interface{}{
+		"test_timestamp":                 time.Now().Format("01/02/2006 15:04:05"),
+		"logs_by_tags":                   logsByTags,
+		"failing_tests":                  failingTests,
+		"succeeding_tests":               succeedingTests,
+		"allowed_to_fail_tests":          allowedToFailTests,
+		"failed_but_not_allowed_to_fail": failedButNotAllowedToFail,
+		"success_ratio":                  fmt.Sprintf("%.2f%%", successRatio),
+	}
+
+	jsonData, err := json.MarshalIndent(finalJSON, "", " ")
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to serialize logs to JSON")
 		return
@@ -445,33 +475,22 @@ var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
 		logger.Info().Str("file", filename).Msg("Test suite log written successfully")
 	}
 
-	failingTests := []string{}
-	for tag := range logsByTags {
-		for _, logEntry := range logsByTags[tag] {
-			if msg, ok := logEntry["message"].(string); ok && strings.Contains(msg, "TEST_FAILED") {
-				failingTests = append(failingTests, tag)
-				break
-			}
-		}
-	}
-
-	// 4. Collect succeeding tests
-	succeedingTests := []string{}
-	for tag := range logsByTags {
-		if !contains(failingTests, tag) {
-			succeedingTests = append(succeedingTests, tag)
-		}
-	}
-
-	// 5. Print results
 	fmt.Printf("\n=== Test Suite Summary ===\n")
-	fmt.Printf("Failing Tests:\n")
+	fmt.Printf("Failing Tests (%d):\n", len(failingTests))
 	for _, test := range failingTests {
 		fmt.Printf("- %s\n", test)
 	}
-	fmt.Printf("\nSucceeding Tests:\n")
+	fmt.Printf("\nSucceeding Tests (%d):\n", len(succeedingTests))
 	for _, test := range succeedingTests {
 		fmt.Printf("- %s\n", test)
 	}
-
+	fmt.Printf("\nAllowed to Fail Tests (%d):\n", len(allowedToFailTests))
+	for _, test := range allowedToFailTests {
+		fmt.Printf("- %s\n", test)
+	}
+	fmt.Printf("\nFailed but Not Allowed to Fail Tests (%d):\n", len(failedButNotAllowedToFail))
+	for _, test := range failedButNotAllowedToFail {
+		fmt.Printf("- %s\n", test)
+	}
+	fmt.Printf("\nSuccess Ratio: %.2f%%\n", successRatio)
 })

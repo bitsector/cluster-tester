@@ -33,12 +33,6 @@ COPY rolling_update_sts_yamls ./rolling_update_sts_yamls
 COPY topology_test_deployment_yamls ./topology_test_deployment_yamls
 COPY topology_test_statefulset_yamls ./topology_test_statefulset_yamls
 
-# Copy Go source files explicitly from root directory
-COPY *.go ./
-
-# Create .env file with required content - we want to prevent copying it
-RUN printf "KUBECONFIG=/path/to/.kube/config\nACCESS_MODE=LOCAL_K8S_API\n" > .env
-
 # Allos non root user 65534 access all thefiles
 RUN chown -R 65534:65534 . && \
     chmod -R 755 . && \
