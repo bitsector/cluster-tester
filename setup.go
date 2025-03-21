@@ -23,6 +23,30 @@ import (
 var Logger zerolog.Logger
 var LogBuffer *bytes.Buffer
 var KubeconfigPath string
+var AllowedToFailTags []string
+
+func parseAllowedToFailTags() error {
+	err := godotenv.Load(".env")
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("error loading .env file: %w", err)
+	}
+
+	allowedToFailStr := os.Getenv("ALLOWED_TO_FAIL")
+	if allowedToFailStr != "" {
+		AllowedToFailTags = strings.Split(allowedToFailStr, ",")
+		for i, tag := range AllowedToFailTags {
+			AllowedToFailTags[i] = strings.TrimSpace(tag)
+		}
+	}
+
+	// Print the list of tests allowed to fail
+	fmt.Printf("Tests allowed to fail:\n")
+	for _, tag := range AllowedToFailTags {
+		fmt.Printf("- %s\n", tag)
+	}
+
+	return nil
+}
 
 func init() {
 	LogBuffer = new(bytes.Buffer)
@@ -47,6 +71,10 @@ func init() {
 		With().
 		Timestamp().
 		Logger()
+
+	if err := parseAllowedToFailTags(); err != nil {
+		fmt.Printf("Warning: Failed to parse ALLOWED_TO_FAIL tags: %v", err)
+	}
 }
 
 func GetLogger(tag string) zerolog.Logger {

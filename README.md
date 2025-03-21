@@ -15,6 +15,7 @@ go get github.com/joho/godotenv
 ```bash
 KUBECONFIG=/path/to/.kube/config
 ACCESS_MODE=KUBECONFIG, LOCAL_K8S_API or EXTERNAL_K8S_API
+ALLOWED_TO_FAIL=StatefulSetPDBTest,DeploymentPDBTest # all tags are listed in .env
 ```
 
 ### Make sure the nodes are in seperate regions
