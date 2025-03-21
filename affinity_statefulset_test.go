@@ -37,7 +37,6 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, ginkgo.
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		logger = example.GetLogger("StatefulSetAffinityTest")
-		logger.Info().Msg("StagefulSet Affinity Test zerolog init")
 
 		// Namespace setup
 		logger.Info().Msgf("=== Ensuring test-ns exists ===")

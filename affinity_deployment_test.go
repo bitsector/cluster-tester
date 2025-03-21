@@ -37,7 +37,6 @@ var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, ginkgo.L
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		logger = example.GetLogger("DeploymentAffinityTest")
-		logger.Info().Msg("Deployment Affinity Test zerolog init")
 
 		// Namespace setup
 		logger.Info().Msgf("=== Ensuring test-ns exists ===")

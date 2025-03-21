@@ -37,7 +37,6 @@ var _ = ginkgo.Describe("StatefulSet Anti Affinity E2E test", ginkgo.Ordered, gi
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		logger = example.GetLogger("StatefulSetAntiAffinityTest")
-		logger.Info().Msg("StateflSet Anti Affinity Test zerolog init")
 
 		// Namespace setup
 		logger.Info().Msgf("=== Ensuring test-ns exists ===")
