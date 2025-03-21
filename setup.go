@@ -396,6 +396,16 @@ func contains(slice []string, str string) bool {
 	return false
 }
 
+type FinalReport struct {
+	TestTimestamp       string                              `json:"test_timestamp"`
+	FailingTests        []string                            `json:"failing_tests"`
+	SucceedingTests     []string                            `json:"succeeding_tests"`
+	AllowedToFailTests  []string                            `json:"allowed_to_fail_tests"`
+	FailedButNotAllowed []string                            `json:"failed_but_not_allowed_to_fail"`
+	SuccessRatio        string                              `json:"success_ratio"`
+	LogsByTags          map[string][]map[string]interface{} `json:"logs_by_tags"`
+}
+
 var _ = ginkgo.ReportAfterSuite("Test Suite Summary", func(report ginkgo.Report) {
 	logger := GetLogger("FinalReportAfterSuite")
 
@@ -453,14 +463,15 @@ var _ = ginkgo.ReportAfterSuite("Test Suite Summary", func(report ginkgo.Report)
 	totalTests := len(failingTests) + len(succeedingTests)
 	successRatio := float64(len(succeedingTests)) / float64(totalTests) * 100
 
-	finalJSON := map[string]interface{}{
-		"test_timestamp":                 time.Now().Format("01/02/2006 15:04:05"),
-		"logs_by_tags":                   logsByTags,
-		"failing_tests":                  failingTests,
-		"succeeding_tests":               succeedingTests,
-		"allowed_to_fail_tests":          allowedToFailTests,
-		"failed_but_not_allowed_to_fail": failedButNotAllowedToFail,
-		"success_ratio":                  fmt.Sprintf("%.2f%%", successRatio),
+	// Replace map with struct instance
+	finalJSON := FinalReport{
+		TestTimestamp:       time.Now().Format("01/02/2006 15:04:05"),
+		FailingTests:        failingTests,
+		SucceedingTests:     succeedingTests,
+		AllowedToFailTests:  allowedToFailTests,
+		FailedButNotAllowed: failedButNotAllowedToFail,
+		SuccessRatio:        fmt.Sprintf("%.2f%%", successRatio),
+		LogsByTags:          logsByTags,
 	}
 
 	jsonData, err := json.MarshalIndent(finalJSON, "", " ")
