@@ -360,7 +360,7 @@ func GetRollingUpdateStatefulSetTestFiles() ([]byte, error) {
 
 var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
 	logger := GetLogger("FinalReportAfterSuite")
-	dir := "/app/temp"
+	dir := "./temp"
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		logger.Error().Msgf("Error: Directory %s does not exist", dir)
@@ -372,54 +372,29 @@ var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
 
 	lines := bytes.Split(LogBuffer.Bytes(), []byte("\n"))
 	logsByTags := make(map[string][]map[string]interface{})
-	testOutcomes := make(map[string]string) // Track pass/fail per test
 
 	for _, line := range lines {
 		if len(line) == 0 {
 			continue
 		}
 
+		fmt.Printf("examining line: %+v\n", string(line))
+
 		var logEntry map[string]interface{}
 		if err := json.Unmarshal(line, &logEntry); err != nil {
 			continue
 		}
 
-		if tagValue, ok := logEntry["tag"].(string); ok {
-			// Track test outcomes based on error presence
-			if _, exists := testOutcomes[tagValue]; !exists {
-				testOutcomes[tagValue] = "passed"
-			}
-			if level, ok := logEntry["level"].(string); ok && level == "error" {
-				testOutcomes[tagValue] = "failed"
-			}
-
+		if tagValue, ok := logEntry["tag"].(string); ok && tagValue != "Setup" {
 			delete(logEntry, "tag")
 			delete(logEntry, "level")
 			logsByTags[tagValue] = append(logsByTags[tagValue], logEntry)
 		}
 	}
 
-	// Count statistics
-	totalTests := len(testOutcomes)
-	var succeededTests, failedTests int
-	for _, status := range testOutcomes {
-		if status == "passed" {
-			succeededTests++
-		} else {
-			failedTests++
-		}
-	}
-
 	finalJSON := map[string]interface{}{
 		"test_timestamp": time.Now().Format("01/02/2006 15:04:05"),
-		"test_statistics": map[string]interface{}{
-			"total_tests":  totalTests,
-			"succeeded":    succeededTests,
-			"failed":       failedTests,
-			"success_rate": fmt.Sprintf("%.1f%%", float64(succeededTests)/float64(totalTests)*100),
-		},
-		"logs_by_tags":      logsByTags,
-		"detailed_outcomes": testOutcomes,
+		"logs_by_tags":   logsByTags,
 	}
 
 	jsonData, err := json.MarshalIndent(finalJSON, "", "  ")
