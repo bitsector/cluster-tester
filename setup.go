@@ -358,6 +358,16 @@ func GetRollingUpdateStatefulSetTestFiles() ([]byte, error) {
 	return startContent, nil
 }
 
+// Helper function to check if a slice contains a string
+func contains(slice []string, str string) bool {
+	for _, v := range slice {
+		if v == str {
+			return true
+		}
+	}
+	return false
+}
+
 var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
 	logger := GetLogger("FinalReportAfterSuite")
 	dir := "./temp"
@@ -377,8 +387,6 @@ var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
 		if len(line) == 0 {
 			continue
 		}
-
-		fmt.Printf("examining line: %+v\n", string(line))
 
 		var logEntry map[string]interface{}
 		if err := json.Unmarshal(line, &logEntry); err != nil {
@@ -408,4 +416,34 @@ var _ = ginkgo.ReportAfterSuite("Test Suite Log", func(report ginkgo.Report) {
 	} else {
 		logger.Info().Str("file", filename).Msg("Test suite log written successfully")
 	}
+
+	failingTests := []string{}
+	for tag := range logsByTags {
+		for _, logEntry := range logsByTags[tag] {
+			if msg, ok := logEntry["message"].(string); ok && strings.Contains(msg, "TEST_FAILED") {
+				failingTests = append(failingTests, tag)
+				break
+			}
+		}
+	}
+
+	// 4. Collect succeeding tests
+	succeedingTests := []string{}
+	for tag := range logsByTags {
+		if !contains(failingTests, tag) {
+			succeedingTests = append(succeedingTests, tag)
+		}
+	}
+
+	// 5. Print results
+	fmt.Printf("\n=== Test Suite Summary ===\n")
+	fmt.Printf("Failing Tests:\n")
+	for _, test := range failingTests {
+		fmt.Printf("- %s\n", test)
+	}
+	fmt.Printf("\nSucceeding Tests:\n")
+	for _, test := range succeedingTests {
+		fmt.Printf("- %s\n", test)
+	}
+
 })

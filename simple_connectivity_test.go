@@ -25,13 +25,14 @@ func TestConnectivity(t *testing.T) {
 var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var clientset *kubernetes.Clientset
 	var logger zerolog.Logger
+	var testTag = "SimpleConnectivityTest"
 
 	ginkgo.BeforeAll(func() {
 		var err error
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		logger = example.GetLogger("SimpleConnectivityTest")
+		logger = example.GetLogger(testTag)
 
 		// Namespace setup
 		logger.Info().Msgf("=== Creating test-ns namespace ===")

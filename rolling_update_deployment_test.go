@@ -31,6 +31,7 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 		clientset    *kubernetes.Clientset
 		depStartYAML []byte
 		logger       zerolog.Logger
+		testTag      = "DeploymentRollingUpdateTest"
 	)
 
 	ginkgo.BeforeAll(func() {
@@ -40,7 +41,7 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		logger = example.GetLogger("DeploymentRollingUpdateTest")
+		logger = example.GetLogger(testTag)
 
 		// Namespace setup
 		logger.Info().Msgf("=== Ensuring test-ns exists ===")
@@ -70,6 +71,10 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 
 	ginkgo.AfterEach(func() {
 		clientset.CoreV1().RESTClient().(*rest.RESTClient).Client.CloseIdleConnections()
+		if ginkgo.CurrentSpecReport().Failed() {
+			logger.Error().Msgf("%s:TEST_FAILED", testTag)
+		}
+
 	})
 
 	ginkgo.AfterAll(func() {

@@ -28,6 +28,7 @@ var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, ginkgo.L
 	var clientset *kubernetes.Clientset
 	var hpaMaxReplicas int32
 	var logger zerolog.Logger
+	var testTag = "DeploymentAffinityTest"
 
 	ginkgo.BeforeAll(func() {
 		logger.Info().Msgf("=== Starting Deployment Affinity E2E test ===")
@@ -36,7 +37,7 @@ var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, ginkgo.L
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		logger = example.GetLogger("DeploymentAffinityTest")
+		logger = example.GetLogger(testTag)
 
 		// Namespace setup
 		logger.Info().Msgf("=== Ensuring test-ns exists ===")
@@ -66,6 +67,9 @@ var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, ginkgo.L
 
 	ginkgo.AfterEach(func() {
 		clientset.CoreV1().RESTClient().(*rest.RESTClient).Client.CloseIdleConnections()
+		if ginkgo.CurrentSpecReport().Failed() {
+			logger.Error().Msgf("%s:TEST_FAILED", testTag)
+		}
 	})
 
 	ginkgo.AfterAll(func() {

@@ -28,6 +28,7 @@ var _ = ginkgo.Describe("Deployment Topology Constraints E2E test", ginkgo.Order
 	var clientset *kubernetes.Clientset
 	var hpaMaxReplicas int32
 	var logger zerolog.Logger
+	var testTag = "DeploymentTopologyConstraitTest"
 
 	ginkgo.BeforeAll(func() {
 		logger.Info().Msgf("=== Starting Deployment Topology Constraints E2E test ===")
@@ -36,7 +37,7 @@ var _ = ginkgo.Describe("Deployment Topology Constraints E2E test", ginkgo.Order
 		clientset, err = example.GetClient()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		logger = example.GetLogger("DeploymentTopologyConstraitTest")
+		logger = example.GetLogger(testTag)
 
 		// Namespace setup
 		logger.Info().Msgf("=== Ensuring test-ns exists ===")
@@ -66,6 +67,10 @@ var _ = ginkgo.Describe("Deployment Topology Constraints E2E test", ginkgo.Order
 
 	ginkgo.AfterEach(func() {
 		clientset.CoreV1().RESTClient().(*rest.RESTClient).Client.CloseIdleConnections()
+		if ginkgo.CurrentSpecReport().Failed() {
+			logger.Error().Msgf("%s:TEST_FAILED", testTag)
+		}
+
 	})
 
 	ginkgo.AfterAll(func() {

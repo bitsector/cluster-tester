@@ -67,10 +67,16 @@ kubectl create job e2e-cluster-tester-cronjob-manual-$(date +%s) \
   -n e2e-admin-ns
 
 # get the pod running the tests
-E2E_POD_NAME=$(kubectl get pods -n e2e-admin-ns | tail -1 | cut -d' ' -f1) && echo "e2e pod name: $E2E_POD_NAME"
+CRONJOB_POD_NAME=$(kubectl get pods -n e2e-admin-ns | tail -1 | cut -d' ' -f1) && echo "e2e pod name: $CRONJOB_POD_NAME"
 
 # get the logs from the pod
-kubectl logs $E2E_POD_NAME -n e2e-admin-ns --follow
+kubectl logs $CRONJOB_POD_NAME -n e2e-admin-ns --follow
+
+
+# get the json logs:
+JSON_LOGS_FILE_NAME=$(kubectl exec -it $CRONJOB_POD_NAME -n e2e-admin-ns -- ls /app/temp) && echo "json log 
+filename: $JSON_LOGS_FILE_NAME"
+
 
 
 # or 
@@ -84,9 +90,12 @@ one after the other.
 In the debug-pod you have to run them manually:
 ```bash
 kubectl exec -it cluster-tester-debug-pod -n e2e-admin-ns -- /busybox/sh
-./cluster-tester
 
+# Run all the tests in the debug pod by executing the binary
+./cluster-tester
+```
 ### Deployment tests
+```bash
 ./cluster-tester -test.v --ginkgo.focus "Deployment Topology Constraints E2E test"
 ./cluster-tester -test.v --ginkgo.focus "Deployment Affinity Test Suite"
 ./cluster-tester -test.v --ginkgo.focus "Deployment Anti Affinity Test Suite"

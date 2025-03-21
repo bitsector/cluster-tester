@@ -50,12 +50,11 @@ RUN chown -R 65534:65534 . && \
 RUN CGO_ENABLED=0 GOOS=linux go test -c -o cluster-tester \
     ./setup.go \
     ./util.go \
-    ./simple_connectivity_test.go \
     ./affinity_deployment_test.go \
     ./anti_affinity_deployment_test.go \
     ./topology_constraint_deployment_test.go \
     ./rolling_update_deployment_test.go \
-    ./pdb_deployment_test.go \
+    ./pdb_deployment_test.go \ 
     ./affinity_statefulset_test.go \
     ./anti_affinity_statefulset_test.go \
     ./topology_constraint_statefulset_test.go \ 
