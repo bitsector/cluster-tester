@@ -39,12 +39,6 @@ func parseAllowedToFailTags() error {
 		}
 	}
 
-	// Print the list of tests allowed to fail
-	fmt.Printf("Tests allowed to fail:\n")
-	for _, tag := range AllowedToFailTags {
-		fmt.Printf("- %s\n", tag)
-	}
-
 	return nil
 }
 

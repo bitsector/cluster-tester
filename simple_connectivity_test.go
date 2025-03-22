@@ -23,9 +23,11 @@ func TestConnectivity(t *testing.T) {
 }
 
 var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
-	var clientset *kubernetes.Clientset
-	var logger zerolog.Logger
-	var testTag = "SimpleConnectivityTest"
+	var (
+		clientset *kubernetes.Clientset
+		logger    zerolog.Logger
+		testTag   = "SimpleConnectivityTest"
+	)
 
 	ginkgo.BeforeAll(func() {
 		var err error

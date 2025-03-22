@@ -25,10 +25,12 @@ func TestDeploymentTopology(t *testing.T) {
 }
 
 var _ = ginkgo.Describe("Deployment Topology Constraints E2E test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
-	var clientset *kubernetes.Clientset
-	var hpaMaxReplicas int32
-	var logger zerolog.Logger
-	var testTag = "DeploymentTopologyConstraitTest"
+	var (
+		clientset      *kubernetes.Clientset
+		hpaMaxReplicas int32
+		logger         zerolog.Logger
+		testTag        = "DeploymentTopologyConstraitTest"
+	)
 
 	ginkgo.BeforeAll(func() {
 		logger.Info().Msgf("=== Starting Deployment Topology Constraints E2E test ===")
