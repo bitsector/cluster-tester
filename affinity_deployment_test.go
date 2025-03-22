@@ -2,6 +2,7 @@ package example_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -32,7 +33,7 @@ var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, ginkgo.L
 	)
 
 	ginkgo.BeforeAll(func() {
-		logger.Info().Msgf("=== Starting Deployment Affinity E2E test ===").Flush()
+		logger.Info().Msgf("=== Starting Deployment Affinity E2E test ===")
 
 		var err error
 		clientset, err = example.GetClient()
@@ -74,7 +75,46 @@ var _ = ginkgo.Describe("Deployment Affinity E2E test", ginkgo.Ordered, ginkgo.L
 	})
 
 	ginkgo.AfterAll(func() {
-		example.ClearNamespace(logger, clientset)
+		logger.Info().Msgf("=== Final namespace cleanup ===")
+		err := clientset.CoreV1().Namespaces().Delete(
+			context.TODO(),
+			"test-ns",
+			metav1.DeleteOptions{},
+		)
+		if err != nil && !apierrors.IsNotFound(err) {
+			ginkgo.Fail(fmt.Sprintf("Final cleanup failed: %v", err))
+		}
+
+		// Namespace existence verification loop
+		const (
+			timeout  = 1 * time.Minute
+			interval = 500 * time.Millisecond
+		)
+		deadline := time.Now().Add(timeout)
+
+		for {
+			_, err := clientset.CoreV1().Namespaces().Get(
+				context.TODO(),
+				"test-ns",
+				metav1.GetOptions{},
+			)
+
+			if apierrors.IsNotFound(err) {
+				break // Namespace successfully deleted
+			}
+
+			if time.Now().After(deadline) {
+				logger.Info().Msgf("\nError: could not destroy 'test-ns' namespace after 1 minute\n")
+				break
+			}
+
+			// Handle transient errors
+			if err != nil {
+				logger.Info().Msgf("Temporary error checking namespace: %v\n", err)
+			}
+
+			time.Sleep(interval)
+		}
 	})
 
 	ginkgo.It("should apply affinity manifests", func() {
