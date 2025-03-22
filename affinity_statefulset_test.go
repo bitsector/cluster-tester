@@ -31,7 +31,6 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, ginkgo.
 		testTag        = "StatefulSetAffinityTest"
 	)
 	ginkgo.BeforeAll(func() {
-		logger.Info().Msgf("=== Starting StatefulSet Affinity E2E test ===")
 
 		var err error
 		clientset, err = example.GetClient()
@@ -78,6 +77,8 @@ var _ = ginkgo.Describe("StatefulSet Affinity E2E test", ginkgo.Ordered, ginkgo.
 	})
 
 	ginkgo.It("should apply affinity manifests", func() {
+		logger.Info().Msgf("=== Starting StatefulSet Affinity E2E test ===")
+		logger.Info().Msgf("=== tag: %s, allowed to fail: %t", testTag, example.IsTestAllowedToFail(testTag))
 		defer example.E2ePanicHandler()
 
 		hpaYAML, zoneYAML, ssYAML, err := example.GetAffinityStatefulSetTestFiles()

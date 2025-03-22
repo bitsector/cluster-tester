@@ -33,7 +33,6 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 	)
 
 	ginkgo.BeforeAll(func() {
-		logger.Info().Msgf("=== Starting StatefulSet Topology Constraints E2E test ===")
 
 		var err error
 		clientset, err = example.GetClient()
@@ -80,6 +79,8 @@ var _ = ginkgo.Describe("StatefulSet Topology Constraints E2E test", ginkgo.Orde
 	})
 
 	ginkgo.It("should apply topology manifests", func() {
+		logger.Info().Msgf("=== Starting StatefulSet Topology Constraints E2E test ===")
+		logger.Info().Msgf("=== tag: %s, allowed to fail: %t", testTag, example.IsTestAllowedToFail(testTag))
 		defer example.E2ePanicHandler()
 
 		hpaYAML, ssYAML, err := example.GetStatefulSetTestFiles()

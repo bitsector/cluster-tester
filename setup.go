@@ -75,6 +75,20 @@ func GetLogger(tag string) zerolog.Logger {
 	return Logger.With().Str("tag", tag).Logger()
 }
 
+// Helper function to check if a slice contains a string
+func contains(slice []string, str string) bool {
+	for _, v := range slice {
+		if v == str {
+			return true
+		}
+	}
+	return false
+}
+
+func IsTestAllowedToFail(testTag string) bool {
+	return contains(AllowedToFailTags, testTag)
+}
+
 func initKubeconfig() error {
 	// Try to load .env file
 	err := godotenv.Load(".env")
@@ -380,16 +394,6 @@ func GetRollingUpdateStatefulSetTestFiles() ([]byte, error) {
 	return startContent, nil
 }
 
-// Helper function to check if a slice contains a string
-func contains(slice []string, str string) bool {
-	for _, v := range slice {
-		if v == str {
-			return true
-		}
-	}
-	return false
-}
-
 type FinalReport struct {
 	TestTimestamp       string                              `json:"test_timestamp"`
 	FailingTests        []string                            `json:"failing_tests"`
@@ -480,22 +484,24 @@ var _ = ginkgo.ReportAfterSuite("Test Suite Summary", func(report ginkgo.Report)
 		logger.Info().Str("file", filename).Msg("Test suite log written successfully")
 	}
 
-	fmt.Printf("\n=== Test Suite Summary ===\n")
-	fmt.Printf("Failing Tests (%d):\n", len(failingTests))
-	for _, test := range failingTests {
-		fmt.Printf("- %s\n", test)
+	if totalTests > 2 { // if running single test  - Setup + The specific single tests - don't print this
+		fmt.Printf("\n=== Test Suite Summary ===\n")
+		fmt.Printf("Failing Tests (%d):\n", len(failingTests))
+		for _, test := range failingTests {
+			fmt.Printf("- %s\n", test)
+		}
+		fmt.Printf("\nSucceeding Tests (%d):\n", len(succeedingTests))
+		for _, test := range succeedingTests {
+			fmt.Printf("- %s\n", test)
+		}
+		fmt.Printf("\nAllowed to Fail Tests (%d):\n", len(allowedToFailTests))
+		for _, test := range allowedToFailTests {
+			fmt.Printf("- %s\n", test)
+		}
+		fmt.Printf("\nFailed but Not Allowed to Fail Tests (%d):\n", len(failedButNotAllowedToFail))
+		for _, test := range failedButNotAllowedToFail {
+			fmt.Printf("- %s\n", test)
+		}
+		fmt.Printf("\nSuccess Ratio: %.2f%%\n", successRatio)
 	}
-	fmt.Printf("\nSucceeding Tests (%d):\n", len(succeedingTests))
-	for _, test := range succeedingTests {
-		fmt.Printf("- %s\n", test)
-	}
-	fmt.Printf("\nAllowed to Fail Tests (%d):\n", len(allowedToFailTests))
-	for _, test := range allowedToFailTests {
-		fmt.Printf("- %s\n", test)
-	}
-	fmt.Printf("\nFailed but Not Allowed to Fail Tests (%d):\n", len(failedButNotAllowedToFail))
-	for _, test := range failedButNotAllowedToFail {
-		fmt.Printf("- %s\n", test)
-	}
-	fmt.Printf("\nSuccess Ratio: %.2f%%\n", successRatio)
 })

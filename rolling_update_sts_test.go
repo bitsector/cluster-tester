@@ -37,7 +37,6 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, g
 	)
 
 	ginkgo.BeforeAll(func() {
-		logger.Info().Msgf("=== Starting StatefulSet Rolling Update E2E test ===")
 
 		var err error
 		clientset, err = example.GetClient()
@@ -84,6 +83,8 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, g
 	})
 
 	ginkgo.It("should apply Rolling update manifests", func() {
+		logger.Info().Msgf("=== Starting StatefulSet Rolling Update E2E test ===")
+		logger.Info().Msgf("=== tag: %s, allowed to fail: %t", testTag, example.IsTestAllowedToFail(testTag))
 		defer example.E2ePanicHandler()
 
 		var err error

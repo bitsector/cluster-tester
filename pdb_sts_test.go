@@ -33,7 +33,6 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 	)
 
 	ginkgo.BeforeAll(func() {
-		logger.Info().Msgf("=== Starting StatefulSet PDB E2E test ===")
 
 		var err error
 		clientset, err = example.GetClient()
@@ -80,6 +79,8 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 	})
 
 	ginkgo.It("should apply PDB manifests", func() {
+		logger.Info().Msgf("=== Starting StatefulSet PDB E2E test ===")
+		logger.Info().Msgf("=== tag: %s, allowed to fail: %t", testTag, example.IsTestAllowedToFail(testTag))
 		defer example.E2ePanicHandler()
 
 		pdbYAML, ssYAML, err := example.GetPDBStSTestFiles()
