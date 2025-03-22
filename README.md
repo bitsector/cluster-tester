@@ -74,22 +74,22 @@ CRONJOB_POD_NAME=$(kubectl get pods -n e2e-admin-ns | tail -1 | cut -d' ' -f1) &
 kubectl logs $CRONJOB_POD_NAME -n e2e-admin-ns --follow
 
 
-# get the json logs:
-JSON_LOGS_FILE_NAME=$(kubectl exec -it $CRONJOB_POD_NAME -n e2e-admin-ns -- ls /app/temp) && echo "json log 
-filename: $JSON_LOGS_FILE_NAME"
+# get json filname
+JSON_LOGS_FILE_NAME=$(kubectl exec $CRONJOB_POD_NAME -n e2e-admin-ns -- ls /app/temp | tr -d '\r') && echo "json filname: $JSON_LOGS_FILE_NAME"
 
+# print json file contents
+kubectl exec $CRONJOB_POD_NAME -n e2e-admin-ns -- sh -c "cat \"/app/temp/${JSON_LOGS_FILE_NAME}\""
 
+# download the json file from the pod to temp/ dir
+kubectl cp -n e2e-admin-ns $CRONJOB_POD_NAME:/app/temp/$JSON_LOGS_FILE_NAME temp/$JSON_LOGS_FILE_NAME
+```
 
-# or 
+Or, alternatively use the debug pod
+```bash
 kubectl create ns e2e-admin-ns
 kubectl apply -f debug-pod.yaml
 
-```
-When the cronjob job is launcehd all the tests will run automatically
-one after the other.
-
-In the debug-pod you have to run them manually:
-```bash
+# ssh into the pod
 kubectl exec -it cluster-tester-debug-pod -n e2e-admin-ns -- /busybox/sh
 
 # Run all the tests in the debug pod by executing the binary
