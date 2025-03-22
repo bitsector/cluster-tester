@@ -79,4 +79,4 @@ WORKDIR /app
 
 USER 65534:65534
 
-ENTRYPOINT ["sh", "-c", "./cluster-tester -test.v; sleep 19800"]
+ENTRYPOINT ["sh", "-c", "./cluster-tester -test.v || true; sleep 19800"]
