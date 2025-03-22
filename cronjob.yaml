@@ -72,7 +72,7 @@ spec:
               type: RuntimeDefault
           containers:
           - name: e2e-test-runner
-            image: antonbiz/cluster-tester-debug:1.30
+            image: antonbiz/cluster-tester-debug:1.33
             imagePullPolicy: Always
             resources:
               requests:

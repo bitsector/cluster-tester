@@ -3,7 +3,6 @@ package example_test
 import (
 	"context"
 	"fmt"
-	"testing"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -18,11 +17,6 @@ import (
 
 	"example"
 )
-
-func TestDeploymentTopology(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Deployment Topology Constraints Suite")
-}
 
 var _ = ginkgo.Describe("Deployment Topology Constraints E2E test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var (

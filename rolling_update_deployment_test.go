@@ -3,7 +3,6 @@ package example_test
 import (
 	"context"
 	"fmt"
-	"testing"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -20,11 +19,6 @@ import (
 
 	"example"
 )
-
-func TestRollingUpdateDeployment(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Deployment Rolling Update Test Suite")
-}
 
 var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var (

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"testing"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -22,11 +21,6 @@ import (
 
 	"example"
 )
-
-func TestRollingUpdateStatefulSet(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "StatefulSet Rolling Update Test Suite")
-}
 
 var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var (

@@ -4,7 +4,6 @@ import (
 	"context"
 	"example"
 	"fmt"
-	"testing"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -16,11 +15,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
-
-func TestConnectivity(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Basic cluster connectivity test")
-}
 
 var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var (

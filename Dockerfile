@@ -42,6 +42,7 @@ RUN chown -R 65534:65534 . && \
 # Build binary (assuming you have setup.go/util.go as well)
 # Build binary (compile all .go files explicitly)
 RUN CGO_ENABLED=0 GOOS=linux go test -c -o cluster-tester \
+    ./main_test.go\
     ./setup.go \
     ./util.go \
     ./affinity_deployment_test.go \

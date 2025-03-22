@@ -3,7 +3,6 @@ package example_test
 import (
 	"context"
 	"fmt"
-	"testing"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -19,11 +18,6 @@ import (
 
 	"example"
 )
-
-func TestDeploymentPDB(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Deployment PDB Test Suite")
-}
 
 var _ = ginkgo.Describe("Deployment PDB E2E test", ginkgo.Ordered, ginkgo.Label("safe-in-production"), func() {
 	var (
