@@ -157,6 +157,9 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 			minReadySeconds)
 
 		rolloutCheckNum := 1
+		lastLog := time.Now()
+		logInterval := 5 * time.Second
+
 		gomega.Eventually(func() error {
 			deployment, err := clientset.AppsV1().Deployments("test-ns").Get(
 				context.TODO(),
@@ -182,20 +185,25 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 			if err != nil {
 				return err
 			}
-
-			logger.Info().Msgf("=== Sample checking rolling update status (attempt %d): ===\n", rolloutCheckNum)
+			if time.Since(lastLog) > logInterval {
+				logger.Info().Msgf("=== Sample checking rolling update status (attempt %d): ===\n", rolloutCheckNum)
+			}
 			var terminating, pending, runningNotReady, ready int
 			for _, pod := range pods.Items {
 				if pod.DeletionTimestamp != nil {
 					terminating++
-					logger.Info().Msgf("[Terminating] %s\n", pod.Name)
+					if time.Since(lastLog) > logInterval {
+						logger.Info().Msgf("[Terminating] %s\n", pod.Name)
+					}
 					continue
 				}
 
 				switch pod.Status.Phase {
 				case v1.PodPending:
 					pending++
-					logger.Info().Msgf("[Pending] %s\n", pod.Name)
+					if time.Since(lastLog) > logInterval {
+						logger.Info().Msgf("[Pending] %s\n", pod.Name)
+					}
 				case v1.PodRunning:
 					isReady := false
 					for _, cond := range pod.Status.Conditions {
@@ -206,10 +214,14 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 					}
 					if isReady {
 						ready++
-						logger.Info().Msgf("[Ready] %s\n", pod.Name)
+						if time.Since(lastLog) > logInterval {
+							logger.Info().Msgf("[Ready] %s\n", pod.Name)
+						}
 					} else {
 						runningNotReady++
-						logger.Info().Msgf("[RunningNotReady] %s\n", pod.Name)
+						if time.Since(lastLog) > logInterval {
+							logger.Info().Msgf("[RunningNotReady] %s\n", pod.Name)
+						}
 					}
 				}
 			}
@@ -229,17 +241,19 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 			}
 
 			rolloutCheckNum++
+			if time.Since(lastLog) > logInterval {
 
-			logger.Info().Msgf("\nRollout Status:\n"+
-				"  Total Pods: %d\n"+
-				"  Surge Usage: %d/%s\n"+
-				"  Unavailable: %d/%s\n"+
-				"  Ready: %d | RunningNotReady: %d | Pending: %d | Terminating: %d\n\n",
-				totalPods,
-				surge, rollingUpdate.MaxSurge.String(),
-				unavailable, rollingUpdate.MaxUnavailable.String(),
-				ready, runningNotReady, pending, terminating)
-
+				logger.Info().Msgf("\nRollout Status:\n"+
+					"  Total Pods: %d\n"+
+					"  Surge Usage: %d/%s\n"+
+					"  Unavailable: %d/%s\n"+
+					"  Ready: %d | RunningNotReady: %d | Pending: %d | Terminating: %d\n\n",
+					totalPods,
+					surge, rollingUpdate.MaxSurge.String(),
+					unavailable, rollingUpdate.MaxUnavailable.String(),
+					ready, runningNotReady, pending, terminating)
+				lastLog = time.Now()
+			}
 			return fmt.Errorf("rollout in progress")
 		}, 5*time.Minute, 10*time.Millisecond).Should(gomega.Succeed())
 

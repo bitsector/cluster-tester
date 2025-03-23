@@ -170,6 +170,9 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, g
 		logger.Info().Msgf("=== StatefulSet Replicas: %d ===", expectedReplicas)
 
 		rolloutCheckNum := 1
+		lastLog := time.Now()
+		logInterval := 5 * time.Second
+
 		gomega.Eventually(func() error {
 			sts, err := clientset.AppsV1().StatefulSets("test-ns").Get(
 				context.TODO(),
@@ -195,21 +198,25 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, g
 			if err != nil {
 				return err
 			}
-
-			logger.Info().Msgf("=== Sample checking rolling update status (attempt %d): ===\n", rolloutCheckNum)
-
+			if time.Since(lastLog) > logInterval {
+				logger.Info().Msgf("=== Sample checking rolling update status (attempt %d): ===\n", rolloutCheckNum)
+			}
 			var terminating, pending, runningNotReady, ready int
 			for _, pod := range pods.Items {
 				if pod.DeletionTimestamp != nil {
 					terminating++
-					logger.Info().Msgf("[Terminating] %s\n", pod.Name)
+					if time.Since(lastLog) > logInterval {
+						logger.Info().Msgf("[Terminating] %s\n", pod.Name)
+					}
 					continue
 				}
 
 				switch pod.Status.Phase {
 				case v1.PodPending:
 					pending++
-					logger.Info().Msgf("[Pending] %s\n", pod.Name)
+					if time.Since(lastLog) > logInterval {
+						logger.Info().Msgf("[Pending] %s\n", pod.Name)
+					}
 				case v1.PodRunning:
 					isReady := false
 					for _, cond := range pod.Status.Conditions {
@@ -220,21 +227,28 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, g
 					}
 					if isReady {
 						ready++
-						logger.Info().Msgf("[Ready] %s\n", pod.Name)
+						if time.Since(lastLog) > logInterval {
+							logger.Info().Msgf("[Ready] %s\n", pod.Name)
+						}
 					} else {
 						runningNotReady++
-						logger.Info().Msgf("[RunningNotReady] %s\n", pod.Name)
+						if time.Since(lastLog) > logInterval {
+							logger.Info().Msgf("[RunningNotReady] %s\n", pod.Name)
+						}
 					}
 				}
 			}
 
 			totalPods := len(pods.Items)
-			logger.Info().Msgf("\nRollout Status:\n"+
-				"  Total Pods: %d\n"+
-				"  Ready: %d | RunningNotReady: %d | Pending: %d | Terminating: %d\n\n",
-				totalPods,
-				ready, runningNotReady, pending, terminating)
+			if time.Since(lastLog) > logInterval {
 
+				logger.Info().Msgf("\nRollout Status:\n"+
+					"  Total Pods: %d\n"+
+					"  Ready: %d | RunningNotReady: %d | Pending: %d | Terminating: %d\n\n",
+					totalPods,
+					ready, runningNotReady, pending, terminating)
+				lastLog = time.Now()
+			}
 			// Validate minimum ready pods requirement
 			if ready < int(expectedReplicas)-1 {
 				return fmt.Errorf("ready pods %d < %d (replicas-1)", ready, expectedReplicas-1)
