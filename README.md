@@ -27,24 +27,25 @@ kubectl get nodes -o custom-columns='NAME:.metadata.name,ZONE:.metadata.labels.t
 
 ### Simple connectivity test (make sure you connect to the cluster):
 ```bash
-go test -v ./simple_connectivity_test.go -ginkgo.focus "Basic cluster connectivity test"
+go test -v -ginkgo.label-filter=safe-in-production -ginkgo.focus="Basic cluster connectivity test" ./...
+
 ```
 
 ### Deployment tests
 ```bash
-go test -v ./topology_constraint_deployment_test.go -ginkgo.focus "Deployment Topology Constraints E2E test"
-go test -v ./affinity_deployment_test.go -ginkgo.focus "Deployment Affinity Test Suite"
-go test -v ./anti_affinity_deployment_test.go -ginkgo.focus "Deployment Anti Affinity Test Suite"
-go test -v ./pdb_deployment_test.go  -ginkgo.focus "Deployment PDB E2E test"
-go test -v ./rolling_update_deployment_test.go -ginkgo.focus "Deployment Rolling Update E2E test"
+go test -v -ginkgo.label-filter=safe-in-production -ginkgo.focus="Deployment Topology Constraints E2E test" ./...
+go test -v -ginkgo.label-filter=safe-in-production -ginkgo.focus="Deployment Affinity E2E test" ./...
+go test -v -ginkgo.label-filter=safe-in-production -ginkgo.focus="Deployment Anti Affinity E2E test" ./...
+go test -v -ginkgo.label-filter=safe-in-production -ginkgo.focus="Deployment PDB E2E test" ./...
+go test -v -ginkgo.label-filter=safe-in-production -ginkgo.focus="Deployment Rolling Update E2E test" ./...
 ```
 ### StatefulSet tests
 ```bash
-go test -v ./affinity_statefulset_test.go -ginkgo.focus "StatefulSet Affinity Test Suite"
-go test -v ./anti_affinity_statefulset_test.go -ginkgo.focus "StatefulSet Anti Affinity E2E test"
-go test -v ./topology_constraint_statefulset_test.go -ginkgo.focus "StatefulSet Topology Constraints E2E test"
-go test -v ./pdb_sts_test.go  -ginkgo.focus "StatefulSet PDB E2E test"
-go test -v ./rolling_update_sts_test.go -ginkgo.focus "StatefulSet Rolling Update E2E test"
+go test -v -ginkgo.label-filter=safe-in-production -ginkgo.focus="StatefulSet Affinity E2E test" ./...
+go test -v -ginkgo.label-filter=safe-in-production -ginkgo.focus="StatefulSet Anti Affinity E2E test" ./...
+go test -v -ginkgo.label-filter=safe-in-production -ginkgo.focus="StatefulSet Topology Constraints E2E test" ./...
+go test -v -ginkgo.label-filter=safe-in-production -ginkgo.focus="StatefulSet PDB E2E test" ./...
+go test -v -ginkgo.label-filter=safe-in-production -ginkgo.focus="StatefulSet Rolling Update E2E test" ./...
 ```
 
 ## Cronjob and debug-pod - How to run it inside a K8s cluster:
@@ -84,7 +85,7 @@ kubectl exec $CRONJOB_POD_NAME -n e2e-admin-ns -- sh -c "cat \"/app/temp/${JSON_
 kubectl cp -n e2e-admin-ns $CRONJOB_POD_NAME:/app/temp/$JSON_LOGS_FILE_NAME temp/$JSON_LOGS_FILE_NAME
 ```
 
-Or, alternatively use the debug pod
+## Or, alternatively, use the debug pod
 ```bash
 kubectl create ns e2e-admin-ns
 kubectl apply -f debug-pod.yaml
@@ -95,20 +96,22 @@ kubectl exec -it cluster-tester-debug-pod -n e2e-admin-ns -- /busybox/sh
 # Run all the tests in the debug pod by executing the binary
 ./cluster-tester
 ```
-### Deployment tests
-```bash
-./cluster-tester -test.v --ginkgo.focus "Deployment Topology Constraints E2E test"
-./cluster-tester -test.v --ginkgo.focus "Deployment Affinity Test Suite"
-./cluster-tester -test.v --ginkgo.focus "Deployment Anti Affinity Test Suite"
-./cluster-tester -test.v --ginkgo.focus "Deployment PDB E2E test"
-./cluster-tester -test.v --ginkgo.focus "Deployment Rolling Update E2E test"
 
-### StatefulSet tests
-./cluster-tester -test.v --ginkgo.focus "StatefulSet Affinity Test Suite"
-./cluster-tester -test.v --ginkgo.focus "StatefulSet Anti Affinity E2E test"
-./cluster-tester -test.v --ginkgo.focus "StatefulSet Topology Constraints E2E test"
-./cluster-tester -test.v --ginkgo.focus "StatefulSet PDB E2E test"
-./cluster-tester -test.v --ginkgo.focus "StatefulSet Rolling Update E2E test"
+### Deployment tests (run in a debug-pod or or cronjob)
+```bash
+./cluster-tester --ginkgo.label-filter=safe-in-production --ginkgo.focus="Deployment Affinity E2E test" -test.v
+./cluster-tester --ginkgo.label-filter=safe-in-production --ginkgo.focus="Deployment Anti Affinity E2E test" -test.v
+./cluster-tester --ginkgo.label-filter=safe-in-production --ginkgo.focus="Deployment Topology Constraints E2E test" -test.v
+./cluster-tester --ginkgo.label-filter=safe-in-production --ginkgo.focus="Deployment PDB E2E test" -test.v
+./cluster-tester --ginkgo.label-filter=safe-in-production --ginkgo.focus="Deployment Rolling Update E2E test" -test.v
+```
+### StatefulSet tests (run in a debug-pod or or cronjob)
+```bash
+./cluster-tester --ginkgo.label-filter=safe-in-production --ginkgo.focus="StatefulSet Affinity E2E test" -test.v
+./cluster-tester --ginkgo.label-filter=safe-in-production --ginkgo.focus="StatefulSet Anti Affinity E2E test" -test.v
+./cluster-tester --ginkgo.label-filter=safe-in-production --ginkgo.focus="StatefulSet Topology Constraints E2E test" -test.v
+./cluster-tester --ginkgo.label-filter=safe-in-production --ginkgo.focus="StatefulSet PDB E2E test" -test.v
+./cluster-tester --ginkgo.label-filter=safe-in-production --ginkgo.focus="StatefulSet Rolling Update E2E test" -test.v
 ```
 
 ## Documentation - The test cases and how they work:
