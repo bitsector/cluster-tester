@@ -20,6 +20,7 @@ COPY *.go ./
 
 # Copy .env file explicitly
 COPY .env .
+RUN sed -i 's/ACCESS_MODE=KUBECONFIG/ACCESS_MODE=LOCAL_K8S_API/g' .env
 
 # Explicitly copy all *test_yamls directories and their contents
 COPY affinity_test_deployment_yamls ./affinity_test_deployment_yamls
