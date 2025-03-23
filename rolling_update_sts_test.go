@@ -184,6 +184,7 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, g
 			if sts.Status.UpdatedReplicas == expectedReplicas &&
 				sts.Status.Replicas == expectedReplicas &&
 				sts.Status.AvailableReplicas == expectedReplicas {
+				logger.Info().Msgf("=== Rollout complete ===")
 				return nil // Rollout complete
 			}
 
@@ -241,7 +242,7 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, g
 
 			rolloutCheckNum++
 			return fmt.Errorf("rollout in progress")
-		}, 5*time.Minute, 5*time.Second).Should(gomega.Succeed(), "StatefulSet rollout timed out after 5 minutes")
+		}, 5*time.Minute, 10*time.Millisecond).Should(gomega.Succeed(), "StatefulSet rollout timed out after 5 minutes")
 
 		// Final status report
 		logger.Info().Msgf("=== Final Rollout Status ===")

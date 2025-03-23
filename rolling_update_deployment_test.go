@@ -171,6 +171,7 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 			if deployment.Status.UpdatedReplicas == *deployment.Spec.Replicas &&
 				deployment.Status.Replicas == *deployment.Spec.Replicas &&
 				deployment.Status.AvailableReplicas == *deployment.Spec.Replicas {
+				logger.Info().Msgf("=== Rollout complete ===")
 				return nil // Rollout complete
 			}
 
@@ -240,7 +241,7 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 				ready, runningNotReady, pending, terminating)
 
 			return fmt.Errorf("rollout in progress")
-		}, 5*time.Minute, 5*time.Second).Should(gomega.Succeed())
+		}, 5*time.Minute, 10*time.Millisecond).Should(gomega.Succeed())
 
 		// Final status check after successful rollout
 		ginkgo.By("Final rollout status verification")
