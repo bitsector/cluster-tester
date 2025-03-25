@@ -69,7 +69,10 @@ kubectl create job e2e-cluster-tester-cronjob-manual-$(date +%s) \
   -n e2e-admin-ns
 
 # get the pod running the tests
-CRONJOB_POD_NAME=$(kubectl get pods -n e2e-admin-ns | tail -1 | cut -d' ' -f1) && echo "e2e pod name: $CRONJOB_POD_NAME"
+CRONJOB_POD_NAME=$(kubectl get pods -n e2e-admin-ns \
+  --field-selector=status.phase=Running \
+  --sort-by=.metadata.creationTimestamp \
+  -o name | tail -1 | cut -d'/' -f2) && echo "e2e pod name: $CRONJOB_POD_NAME"
 
 # get the logs from the pod
 kubectl logs $CRONJOB_POD_NAME -n e2e-admin-ns --follow
@@ -85,6 +88,44 @@ kubectl exec $CRONJOB_POD_NAME -n e2e-admin-ns -- sh -c "cat \"/app/temp/${JSON_
 kubectl cp -n e2e-admin-ns $CRONJOB_POD_NAME:/app/temp/$JSON_LOGS_FILE_NAME temp/$JSON_LOGS_FILE_NAME
 ```
 
+## How to get logs json file manually:
+```bash
+# Get all the cronjob pods in the e2e-admin-ns namespace:
+kubectl get pods -n e2e-admin-ns
+
+# Output:
+# NAME                                                 READY   STATUS    RESTARTS   AGE
+# e2e-cluster-tester-cronjob-manual-1742878565-fbv4b   1/1     Running   0          4m25s
+# e2e-cluster-tester-cronjob-manual-1742878569-b5j88   0/1     Pending   0          4m21s
+
+# Find the name of the Running pod (there should be only one)
+# In this case
+# e2e-cluster-tester-cronjob-manual-1742878565-fbv4b   1/1     Running 
+
+# Now get the log file name it's format is test_suite_log_<timestamp>.json
+kubectl exec e2e-cluster-tester-cronjob-manual-1742878565-fbv4b -n e2e-admin-ns -- ls /app/temp | tr -d '\r'
+
+# Result:
+# test_suite_log_20250325-045612.json
+
+# Downlaod the file's content:
+kubectl exec e2e-cluster-tester-cronjob-manual-1742878565-fbv4b -n e2e-admin-ns -- sh -c "cat \"/app/temp/test_suite_log_20250325-045612.json\""
+
+# Result:
+# {
+#  "test_timestamp": "03/25/2025 04:56:12",
+#  "failing_tests": [],
+#  "succeeding_tests": [],
+#  "allowed_to_fail_tests": [],
+#  "failed_but_not_allowed_to_fail": [],
+#  "success_ratio": "42%",
+#  "logs_by_tags": {<logs>}
+# }
+
+# Store the file contents into a local file:
+kubectl exec e2e-cluster-tester-cronjob-manual-1742878565-fbv4b -n e2e-admin-ns -- sh -c "cat \"/app/temp/test_suite_log_20250325-045612.json\"" > /path/to/local/file.txt
+
+```
 ## Or, alternatively, use the debug pod
 ```bash
 kubectl create ns e2e-admin-ns
