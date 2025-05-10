@@ -75,7 +75,6 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 	ginkgo.It("should apply PDB manifests", func() {
 		logger.Info().Msgf("=== Starting StatefulSet PDB E2E test ===")
 		logger.Info().Msgf("=== tag: %s, allowed to fail: %t", testTag, example.IsTestAllowedToFail(testTag))
-		defer example.E2ePanicHandler()
 
 		pdbYAML, ssYAML, err := example.GetPDBStSTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -106,7 +105,6 @@ var _ = ginkgo.Describe("StatefulSet PDB E2E test", ginkgo.Ordered, ginkgo.Label
 	})
 
 	ginkgo.It("should maintain minimum pod count during deletions", func() {
-		defer example.E2ePanicHandler()
 
 		//Get current pod count
 		pods, err := clientset.CoreV1().Pods("test-ns").List(

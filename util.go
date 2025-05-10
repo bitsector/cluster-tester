@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
 	"github.com/rs/zerolog"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
@@ -86,14 +85,6 @@ func ApplyRawManifest(clientset *kubernetes.Clientset, yamlContent []byte) error
 		return fmt.Errorf("manifest application errors:\n%s", strings.Join(errors, "\n"))
 	}
 	return nil
-}
-
-func E2ePanicHandler() {
-	defer func() {
-		if r := recover(); r != nil {
-			ginkgo.Fail(fmt.Sprintf("Test panicked with error: %v", r))
-		}
-	}()
 }
 
 func ClearNamespace(logger zerolog.Logger, clientset *kubernetes.Clientset) {

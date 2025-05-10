@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -76,17 +77,17 @@ func GetLogger(tag string) zerolog.Logger {
 }
 
 // Helper function to check if a slice contains a string
-func contains(slice []string, str string) bool {
-	for _, v := range slice {
-		if v == str {
-			return true
-		}
-	}
-	return false
-}
+// func contains(slice []string, str string) bool {
+// 	for _, v := range slice {
+// 		if v == str {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
 
 func IsTestAllowedToFail(testTag string) bool {
-	return contains(AllowedToFailTags, testTag)
+	return slices.Contains(AllowedToFailTags, testTag)
 }
 
 func initKubeconfig() error {
@@ -439,7 +440,7 @@ var _ = ginkgo.ReportAfterSuite("Test Suite Summary", func(report ginkgo.Report)
 
 			if msg, ok := logEntry["message"].(string); ok && strings.Contains(msg, "TEST_FAILED") {
 				failingTests = append(failingTests, tagValue)
-				if contains(AllowedToFailTags, tagValue) {
+				if slices.Contains(AllowedToFailTags, tagValue) {
 					allowedToFailTests = append(allowedToFailTests, tagValue)
 				} else {
 					failedButNotAllowedToFail = append(failedButNotAllowedToFail, tagValue)
@@ -453,7 +454,7 @@ var _ = ginkgo.ReportAfterSuite("Test Suite Summary", func(report ginkgo.Report)
 	}
 
 	for tag := range allTags {
-		if !contains(failingTests, tag) {
+		if !slices.Contains(failingTests, tag) {
 			succeedingTests = append(succeedingTests, tag)
 		}
 	}

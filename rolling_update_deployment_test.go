@@ -77,7 +77,6 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 	ginkgo.It("should apply Rolling update manifests", func() {
 		logger.Info().Msgf("=== Starting Deployment Rolling Update E2E test ===")
 		logger.Info().Msgf("=== tag: %s, allowed to fail: %t", testTag, example.IsTestAllowedToFail(testTag))
-		defer example.E2ePanicHandler()
 
 		var err error
 		depStartYAML, err = example.GetRollingUpdateDeploymentTestFiles()
@@ -93,7 +92,6 @@ var _ = ginkgo.Describe("Deployment Rolling Update E2E test", ginkgo.Ordered, gi
 	})
 
 	ginkgo.It("should perform rolling update with updated CPU requests", func() {
-		defer example.E2ePanicHandler()
 
 		logger.Info().Msgf("=== Preparing rolling update with new CPU requests ===")
 		// Get existing deployment

@@ -75,7 +75,6 @@ var _ = ginkgo.Describe("Deployment Topology Constraints E2E test", ginkgo.Order
 	ginkgo.It("should apply topology manifests", func() {
 		logger.Info().Msgf("=== Starting Deployment Topology Constraints E2E test ===")
 		logger.Info().Msgf("=== tag: %s, allowed to fail: %t", testTag, example.IsTestAllowedToFail(testTag))
-		defer example.E2ePanicHandler()
 
 		hpaYAML, depYAML, err := example.GetTopologyDeploymentTestFiles()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -103,7 +102,6 @@ var _ = ginkgo.Describe("Deployment Topology Constraints E2E test", ginkgo.Order
 	})
 
 	ginkgo.It("should verify topology resources exist", func() {
-		defer example.E2ePanicHandler()
 
 		logger.Info().Msgf("=== Verifying cluster resources ===")
 
@@ -168,7 +166,6 @@ var _ = ginkgo.Describe("Deployment Topology Constraints E2E test", ginkgo.Order
 	})
 
 	ginkgo.It("should verify topology constraints", func() {
-		defer example.E2ePanicHandler()
 
 		logger.Info().Msgf("=== Verifying pod scale count and distribution ===")
 

@@ -79,7 +79,6 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, g
 	ginkgo.It("should apply Rolling update manifests", func() {
 		logger.Info().Msgf("=== Starting StatefulSet Rolling Update E2E test ===")
 		logger.Info().Msgf("=== tag: %s, allowed to fail: %t", testTag, example.IsTestAllowedToFail(testTag))
-		defer example.E2ePanicHandler()
 
 		var err error
 		ssStartYAML, err = example.GetRollingUpdateStatefulSetTestFiles()
@@ -140,7 +139,6 @@ var _ = ginkgo.Describe("StatefulSet Rolling Update E2E test", ginkgo.Ordered, g
 	})
 
 	ginkgo.It("should perform rolling update with updated CPU requests for StatefulSet", func() {
-		defer example.E2ePanicHandler()
 
 		logger.Info().Msgf("=== Preparing StatefulSet rolling update with new CPU requests ===")
 

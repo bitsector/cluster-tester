@@ -92,7 +92,6 @@ var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkg
 	})
 
 	ginkgo.It("should list cluster nodes", func() {
-		defer example.E2ePanicHandler()
 
 		logger.Info().Msgf("=== Listing cluster nodes ===")
 		nodes, err := clientset.CoreV1().Nodes().List(
@@ -109,7 +108,6 @@ var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkg
 	})
 
 	ginkgo.It("should have ready nodes", func() {
-		defer example.E2ePanicHandler()
 
 		nodes, err := clientset.CoreV1().Nodes().List(
 			context.TODO(),
@@ -135,7 +133,6 @@ var _ = ginkgo.Describe("Basic cluster connectivity test", ginkgo.Ordered, ginkg
 	})
 
 	ginkgo.It("should have test namespace", func() {
-		defer example.E2ePanicHandler()
 
 		logger.Info().Msgf("=== Verifying test namespace ===")
 		_, err := clientset.CoreV1().Namespaces().Get(
